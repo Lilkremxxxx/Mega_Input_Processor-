@@ -18,70 +18,72 @@
         </header>
 
         <main>
-            <div class="upload-section">
-                <!-- ShortInfo Upload -->
-                <div class="upload-area" id="shortinfoUploadArea">
-                    <div class="upload-content">
-                        <i class="fas fa-cloud-upload-alt upload-icon"></i>
-                        <h2>Upload ShortInfo</h2>
-                        <p class="upload-note">Chỉ upload file thông tin ngắn gọn, tỉ lệ số nhiều hơn chữ (giá tiền, mô tả ngắn, ...). Định dạng: xlsx, csv, jpg, png.</p>
-                        <input type="file" id="shortinfoFileInput" multiple accept=".csv,.xlsx,.jpg,.png" hidden>
-                        <button class="browse-btn" id="shortinfoBrowseBtn">
-                            <i class="fas fa-folder-open"></i> Browse Files
+            <div class="upload-section" style="display: flex; gap: 32px; justify-content: center; align-items: flex-start;">
+                <!-- ShortInfo Upload (Left) -->
+                <div style="flex:1; min-width:320px;">
+                    <div class="upload-area" id="shortinfoUploadArea">
+                        <div class="upload-content">
+                            <i class="fas fa-cloud-upload-alt upload-icon"></i>
+                            <h2>Upload ShortInfo</h2>
+                            <p class="upload-note">Chỉ upload file thông tin ngắn gọn, tỉ lệ số nhiều hơn chữ (giá tiền, mô tả ngắn, ...). Định dạng: xlsx, csv, jpg, png.</p>
+                            <input type="file" id="shortinfoFileInput" multiple accept=".csv,.xlsx,.jpg,.png" hidden>
+                            <button class="browse-btn" id="shortinfoBrowseBtn">
+                                <i class="fas fa-folder-open"></i> Browse Files
+                            </button>
+                        </div>
+                    </div>
+                    <div class="file-list" id="shortinfoFileList">
+                        <h3><i class="fas fa-list"></i> Selected ShortInfo Files</h3>
+                        <div class="files-container" id="shortinfoFilesContainer">
+                            <p class="no-files">No files selected</p>
+                        </div>
+                    </div>
+                    <div class="upload-controls">
+                        <button class="upload-btn" id="shortinfoUploadBtn" disabled>
+                            <i class="fas fa-upload"></i> Upload ShortInfo
+                        </button>
+                        <button class="clear-btn" id="shortinfoClearBtn">
+                            <i class="fas fa-trash"></i> Clear All
                         </button>
                     </div>
                 </div>
-                <div class="file-list" id="shortinfoFileList">
-                    <h3><i class="fas fa-list"></i> Selected ShortInfo Files</h3>
-                    <div class="files-container" id="shortinfoFilesContainer">
-                        <p class="no-files">No files selected</p>
+                <!-- RichInfo Upload (Right) -->
+                <div style="flex:1; min-width:320px;">
+                    <div class="upload-area" id="richinfoUploadArea">
+                        <div class="upload-content">
+                            <i class="fas fa-cloud-upload-alt upload-icon"></i>
+                            <h2>Upload RichInfo</h2>
+                            <p class="upload-note">Upload tài liệu có nội dung ngữ nghĩa cao (giới thiệu công ty, sản phẩm, ...). Định dạng: docx, txt, xlsx, csv, jpg, png.</p>
+                            <input type="file" id="richinfoFileInput" multiple accept=".csv,.xlsx,.docx,.txt,.jpg,.png" hidden>
+                            <button class="browse-btn" id="richinfoBrowseBtn">
+                                <i class="fas fa-folder-open"></i> Browse Files
+                            </button>
+                        </div>
                     </div>
-                </div>
-                <div class="upload-controls">
-                    <button class="upload-btn" id="shortinfoUploadBtn" disabled>
-                        <i class="fas fa-upload"></i> Upload ShortInfo
-                    </button>
-                    <button class="clear-btn" id="shortinfoClearBtn">
-                        <i class="fas fa-trash"></i> Clear All
-                    </button>
-                </div>
-
-                <!-- RichInfo Upload -->
-                <div class="upload-area" id="richinfoUploadArea">
-                    <div class="upload-content">
-                        <i class="fas fa-cloud-upload-alt upload-icon"></i>
-                        <h2>Upload RichInfo</h2>
-                        <p class="upload-note">Upload tài liệu có nội dung ngữ nghĩa cao (giới thiệu công ty, sản phẩm, ...). Định dạng: docx, txt, xlsx, csv, jpg, png.</p>
-                        <input type="file" id="richinfoFileInput" multiple accept=".csv,.xlsx,.docx,.txt,.jpg,.png" hidden>
-                        <button class="browse-btn" id="richinfoBrowseBtn">
-                            <i class="fas fa-folder-open"></i> Browse Files
+                    <div class="file-list" id="richinfoFileList">
+                        <h3><i class="fas fa-list"></i> Selected RichInfo Files</h3>
+                        <div class="files-container" id="richinfoFilesContainer">
+                            <p class="no-files">No files selected</p>
+                        </div>
+                    </div>
+                    <div class="upload-controls">
+                        <button class="upload-btn" id="richinfoUploadBtn" disabled>
+                            <i class="fas fa-upload"></i> Upload RichInfo
+                        </button>
+                        <button class="clear-btn" id="richinfoClearBtn">
+                            <i class="fas fa-trash"></i> Clear All
                         </button>
                     </div>
                 </div>
-                <div class="file-list" id="richinfoFileList">
-                    <h3><i class="fas fa-list"></i> Selected RichInfo Files</h3>
-                    <div class="files-container" id="richinfoFilesContainer">
-                        <p class="no-files">No files selected</p>
-                    </div>
-                </div>
-                <div class="upload-controls">
-                    <button class="upload-btn" id="richinfoUploadBtn" disabled>
-                        <i class="fas fa-upload"></i> Upload RichInfo
-                    </button>
-                    <button class="clear-btn" id="richinfoClearBtn">
-                        <i class="fas fa-trash"></i> Clear All
-                    </button>
-                </div>
-
-                <div class="progress-section" id="progressSection" style="display: none;">
-                    <div class="progress-bar">
-                        <div class="progress-fill" id="progressFill"></div>
-                    </div>
-                    <p class="progress-text" id="progressText">Uploading...</p>
-                </div>
-
-                <div class="result-section" id="resultSection"></div>
             </div>
+            <!-- Thanh upload dùng chung -->
+            <div class="progress-section" id="progressSection" style="display: none; max-width:600px; margin:32px auto;">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <p class="progress-text" id="progressText">Uploading...</p>
+            </div>
+            <div class="result-section" id="resultSection"></div>
         </main>
 
         <footer>

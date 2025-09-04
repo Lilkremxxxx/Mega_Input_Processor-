@@ -222,8 +222,9 @@ async function uploadFiles(files, endpoint) {
     xhr.onload = function() {
         progressFill.style.width = '100%';
         progressText.textContent = 'Completed!';
-        // Hiển thị thông báo xanh đẹp mắt
-        let message = 'Upload và xử lý thành công!';
+        // Hiển thị thông báo xanh đẹp mắt kèm tên file
+        let fileNames = files.map(f => f.name).join(', ');
+        let message = `Đã upload + xử lý thành công file: ${fileNames}`;
         const notifyDiv = document.createElement('div');
         notifyDiv.style.background = '#4BB543';
         notifyDiv.style.color = 'white';
@@ -231,8 +232,8 @@ async function uploadFiles(files, endpoint) {
         notifyDiv.style.borderRadius = '8px';
         notifyDiv.style.margin = '24px auto';
         notifyDiv.style.textAlign = 'center';
-        notifyDiv.style.maxWidth = '400px';
-        notifyDiv.style.fontSize = '1.2em';
+        notifyDiv.style.maxWidth = '500px';
+        notifyDiv.style.fontSize = '1.1em';
         notifyDiv.textContent = message;
         resultSection.innerHTML = '';
         resultSection.appendChild(notifyDiv);
