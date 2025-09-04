@@ -1,4 +1,6 @@
 import os
+from Web.Backend.shortinfo_upload import router as shortinfo_router
+from Web.Backend.richinfo_upload import router as richinfo_router
 import asyncio
 from fastapi import File, UploadFile, HTTPException, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -8,6 +10,8 @@ from typing import List
 from process_files import process_uploaded_files
 
 app = FastAPI(title="Mega Input Processor", description="File Upload API", version="1.0.0")
+app.include_router(shortinfo_router)
+app.include_router(richinfo_router)
 
 # Add CORS middleware
 app.add_middleware(
@@ -19,7 +23,7 @@ app.add_middleware(
 )
 
 # Mount static files
-app.mount("/static", StaticFiles(directory="Web"), name="static")
+app.mount("/static", StaticFiles(directory="Web/Frontend"), name="static")
 
 # thư mục gốc để lưu file upload
 BASE_UPLOAD_DIR = "uploads"
@@ -30,7 +34,7 @@ os.makedirs(BASE_UPLOAD_DIR, exist_ok=True)
 async def read_root():
     """Serve the main upload page"""
     try:
-        with open("Web/index.html", "r", encoding="utf-8") as f:
+        with open("Web/Frontend/index.html", "r", encoding="utf-8") as f:
             return HTMLResponse(content=f.read(), status_code=200)
     except FileNotFoundError:
         return HTMLResponse(content="<h1>Upload page not found</h1>", status_code=404)
