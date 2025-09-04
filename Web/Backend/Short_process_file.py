@@ -6,6 +6,7 @@ from langchain_unstructured import UnstructuredLoader
 from dotenv import load_dotenv
 from os import getenv
 import asyncpg
+import openpyxl
 
 load_dotenv()
 PG_HOST=os.getenv("PG_HOST")
@@ -24,9 +25,8 @@ async def process_uploaded_files(file_paths):
         if ext == ".csv":
            await csv_process(file_path)
 
-        elif ext == '.docx' or ext == '.txt':
-            await docx_text_process(file_path)
-        
+        elif ext == '.xlsx':
+            await xlsx_process(file_path)
 
         elif ext in [".jpg", ".png"]:
             from PIL import Image
@@ -35,47 +35,77 @@ async def process_uploaded_files(file_paths):
             
         else:
             print(f"File {file_path} uploaded but no specific processing defined.")
-            # Có thể thêm xử lý chung cho text files, etc.
-
+           
 
 async def csv_process(file_path):
-
     ''' Xử lý file csv: parse dữ liệu (columns + data)
-    Sau đó insert vào dtbase'''
+    Sau đó insert vào database '''
+    
     name_dtb = os.path.splitext(os.path.basename(file_path))[0]
-    df = pd.read_csv(file_path,nrows=0)
-    loader = CSVLoader(file_path=file_path, encoding="utf-8",csv_args={
-    'delimiter': ',',
-    'quotechar': '"',})
-    docs = [doc async for doc in loader.alazy_load()]
-    columns = df.columns.tolist()
-    col_defs = ", ".join([f'"{col}" text' for col in columns])
+    df = pd.read_csv(file_path, nrows=0, delimiter=',', encoding="utf-8-sig")
+    columns = df.columns.tolist()[0].split(",") 
+    # Loader
+    loader = CSVLoader(
+        file_path=file_path,
+        encoding="utf-8-sig",
+        csv_args={'delimiter': ','}
+    )
+    docs = []
+    async for doc in loader.alazy_load():
+        docs.append(doc)
+    conn = await asyncpg.connect(
+        host=PG_HOST, database=PG_DBNAME,
+        user=PG_USER, password=PG_PASSWORD
+    )
+    #Nếu bảng tồn tại thì xóa
+    await conn.execute(f'DROP TABLE IF EXISTS "{name_dtb}";')
 
-    conn = await asyncpg.connect(host=PG_HOST, database=PG_DBNAME, user=PG_USER, password=PG_PASSWORD)
-    # Xóa bảng nếu đã tồn tại
-    await conn.execute(f"DROP TABLE IF EXISTS {name_dtb}")
-    # Tạo bảng mới
-    await conn.execute(f"CREATE TABLE {name_dtb}({col_defs})")
-    # Parse và insert dữ liệu
-    for doc in docs:
-        # Parse page_content thành dict
-        lines = doc.page_content.split('\n')
-        row_dict = {}
-        for line in lines:
-            # Loại bỏ BOM nếu có ở đầu dòng
-            if line.startswith('\ufeff'):
-                line = line.replace('\ufeff', '', 1)
-            if ':' in line:
-                key, value = line.split(':', 1)
-                row_dict[key.strip()] = value.strip()
-        # Tạo tuple giá trị đúng thứ tự columns
-        values = tuple(row_dict.get(col, None) for col in columns)
-        
-        # Insert vào bảng
-        placeholders = ','.join(['$'+str(i+1) for i in range(len(columns))])
+    columns_def = ", ".join([f'"{col}" text' for col in columns])
+    await conn.execute(f'CREATE TABLE IF NOT EXISTS "{name_dtb}" ({columns_def});')
+    Contents = [doc.page_content for doc in docs]
+    for item in Contents:
+        _, value_part = item.split(":", 1)
+        values = [v.strip() for v in value_part.split(",")]
+        placeholders = ','.join([f'${i+1}' for i in range(len(columns))])
         columns_sql = ', '.join(f'"{col}"' for col in columns)
-        insert_sql = f'INSERT INTO {name_dtb} ({columns_sql}) VALUES ({placeholders})'
+        insert_sql = f'INSERT INTO "{name_dtb}" ({columns_sql}) VALUES ({placeholders})'
         await conn.execute(insert_sql, *values)
     await conn.close()
-    
     print(f"✅ Created table {name_dtb} and inserted {len(docs)} rows.")
+
+
+
+async def xlsx_process(file_path):
+    ''' Xử lý file xlsx: parse dữ liệu (columns + data) từ tất cả sheets
+    Mỗi sheet sẽ thành một bảng riêng biệt'''
+    
+    base_name = os.path.splitext(os.path.basename(file_path))[0]
+    # Đọc tất cả sheet names
+    xls = pd.ExcelFile(file_path)
+    sheet_names = xls.sheet_names
+    conn = await asyncpg.connect(host=PG_HOST, database=PG_DBNAME, user=PG_USER, password=PG_PASSWORD)
+    total_rows = 0
+    # Xử lý từng sheet
+    for sheet_name in sheet_names:
+        # Tên bảng = tên file + tên sheet
+        table_name = f"{base_name}_{sheet_name}"
+        df = pd.read_excel(file_path, sheet_name=sheet_name)
+        
+        columns = df.columns.tolist()
+        columns_def = ", ".join([f'"{col}" text' for col in columns])
+        
+        await conn.execute(f'DROP TABLE IF EXISTS "{table_name}";')
+        await conn.execute(f'CREATE TABLE "{table_name}" ({columns_def});')
+        # Insert data
+        for _, row in df.iterrows():
+            values = tuple(None if pd.isna(row[col]) else str(row[col]) for col in columns)
+            placeholders = ','.join([f'${i+1}' for i in range(len(columns))])
+            columns_sql = ', '.join(f'"{col}"' for col in columns)
+            insert_sql = f'INSERT INTO "{table_name}" ({columns_sql}) VALUES ({placeholders})'
+            await conn.execute(insert_sql, *values)
+        total_rows += len(df)
+        print(f"✅ Created table {table_name} and inserted {len(df)} rows.")
+    await conn.close()
+    print(f"✅ Processed {len(sheet_names)} sheets with total {total_rows} rows.")
+
+    
