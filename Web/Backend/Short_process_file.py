@@ -52,9 +52,10 @@ async def csv_process(file_path):
     col_defs = ", ".join([f'"{col}" text' for col in columns])
 
     conn = await asyncpg.connect(host=PG_HOST, database=PG_DBNAME, user=PG_USER, password=PG_PASSWORD)
-    await conn.execute(
-        f"create table if not exists {name_dtb}({col_defs})"
-    )
+    # Xóa bảng nếu đã tồn tại
+    await conn.execute(f"DROP TABLE IF EXISTS {name_dtb}")
+    # Tạo bảng mới
+    await conn.execute(f"CREATE TABLE {name_dtb}({col_defs})")
     # Parse và insert dữ liệu
     for doc in docs:
         # Parse page_content thành dict

@@ -123,10 +123,9 @@ function updateShortinfoFilesList() {
     if (shortinfoFiles.length === 0) {
         shortinfoFilesContainer.innerHTML = '<p class="no-files">No files selected</p>';
     } else {
-        shortinfoFiles.forEach(file => {
+        shortinfoFiles.forEach((file, idx) => {
             const div = document.createElement('div');
             div.className = 'file-item';
-            // Chọn icon theo định dạng file
             let ext = file.name.split('.').pop().toLowerCase();
             let icon = '';
             if (ext === 'csv') icon = '<i class="fas fa-file-csv"></i>';
@@ -135,7 +134,25 @@ function updateShortinfoFilesList() {
             else if (ext === 'docx') icon = '<i class="fas fa-file-word"></i>';
             else if (ext === 'txt') icon = '<i class="fas fa-file-alt"></i>';
             else icon = '<i class="fas fa-file"></i>';
+            // Nút xóa
+            const removeBtn = document.createElement('button');
+            removeBtn.innerHTML = '<i class="fas fa-times"></i>';
+            removeBtn.style.background = 'none';
+            removeBtn.style.border = 'none';
+            removeBtn.style.color = '#d32f2f';
+            removeBtn.style.fontSize = '1.1em';
+            removeBtn.style.cursor = 'pointer';
+            removeBtn.style.marginLeft = 'auto';
+            removeBtn.title = 'Bỏ chọn file';
+            removeBtn.onclick = () => {
+                shortinfoFiles.splice(idx, 1);
+                updateShortinfoFilesList();
+                updateShortinfoUploadButton();
+            };
             div.innerHTML = `<span style='display:flex;align-items:center;gap:8px;'>${icon}<span>${file.name}</span></span>`;
+            div.style.display = 'flex';
+            div.style.alignItems = 'center';
+            div.appendChild(removeBtn);
             shortinfoFilesContainer.appendChild(div);
         });
     }
@@ -146,10 +163,9 @@ function updateRichinfoFilesList() {
     if (richinfoFiles.length === 0) {
         richinfoFilesContainer.innerHTML = '<p class="no-files">No files selected</p>';
     } else {
-        richinfoFiles.forEach(file => {
+        richinfoFiles.forEach((file, idx) => {
             const div = document.createElement('div');
             div.className = 'file-item';
-            // Chọn icon theo định dạng file
             let ext = file.name.split('.').pop().toLowerCase();
             let icon = '';
             if (ext === 'csv') icon = '<i class="fas fa-file-csv"></i>';
@@ -158,7 +174,25 @@ function updateRichinfoFilesList() {
             else if (ext === 'docx') icon = '<i class="fas fa-file-word"></i>';
             else if (ext === 'txt') icon = '<i class="fas fa-file-alt"></i>';
             else icon = '<i class="fas fa-file"></i>';
+            // Nút xóa
+            const removeBtn = document.createElement('button');
+            removeBtn.innerHTML = '<i class="fas fa-times"></i>';
+            removeBtn.style.background = 'none';
+            removeBtn.style.border = 'none';
+            removeBtn.style.color = '#d32f2f';
+            removeBtn.style.fontSize = '1.1em';
+            removeBtn.style.cursor = 'pointer';
+            removeBtn.style.marginLeft = 'auto';
+            removeBtn.title = 'Bỏ chọn file';
+            removeBtn.onclick = () => {
+                richinfoFiles.splice(idx, 1);
+                updateRichinfoFilesList();
+                updateRichinfoUploadButton();
+            };
             div.innerHTML = `<span style='display:flex;align-items:center;gap:8px;'>${icon}<span>${file.name}</span></span>`;
+            div.style.display = 'flex';
+            div.style.alignItems = 'center';
+            div.appendChild(removeBtn);
             richinfoFilesContainer.appendChild(div);
         });
     }
