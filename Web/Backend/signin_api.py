@@ -24,6 +24,11 @@ async def signin(data: SignInRequest):
     conn = await asyncpg.connect(host=PG_HOST, user=PG_USER, password=PG_PASSWORD, database="postgres")
     user = await conn.fetchrow("SELECT * FROM users WHERE username=$1", username)
     if not user:
-        await conn.execute("INSERT INTO users (username, password) VALUES ($1, $2)", username, password)
+        await conn.close()
+        return {"success": False, "detail": "User không tồn tại!"}
+    if user['password'] != password:
+        await conn.close()
+        return {"success": False, "detail": "Sai mật khẩu!"}
+    dtbase = user.get('dtbase') or ""
     await conn.close()
-    return {"success": True, "username": username}
+    return {"success": True, "username": username, "dtbase": dtbase}

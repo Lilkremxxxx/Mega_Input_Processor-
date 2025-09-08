@@ -28,15 +28,27 @@ const resultSection = document.getElementById('resultSection');
 document.addEventListener('DOMContentLoaded', function() {
     // Tạo database button
     const createDatabaseBtn = document.getElementById('createDatabaseBtn');
-    if (createDatabaseBtn) {
-        // Kiểm tra nếu đã có database thì disable nút và hiển thị tên database
-        const dt_base = localStorage.getItem('dt_base');
+    const deleteDatabaseBtn = document.getElementById('deleteDatabaseBtn');
+    let username = localStorage.getItem('currentUser');
+    let dt_base = '';
+    function updateDbButtons() {
+        username = localStorage.getItem('currentUser');
+        dt_base = localStorage.getItem('dt_base_' + username) || '';
+        localStorage.setItem('dt_base', dt_base);
         if (dt_base) {
             createDatabaseBtn.disabled = true;
             createDatabaseBtn.innerHTML = `<i class="fas fa-check"></i> Đã tạo database: ${dt_base}`;
+            deleteDatabaseBtn.style.display = '';
+        } else {
+            createDatabaseBtn.disabled = false;
+            createDatabaseBtn.innerHTML = '<i class="fas fa-database"></i> Tạo Database';
+            deleteDatabaseBtn.style.display = 'none';
         }
+    }
+    if (createDatabaseBtn && deleteDatabaseBtn) {
+        updateDbButtons();
         createDatabaseBtn.addEventListener('click', async function() {
-            const username = localStorage.getItem('currentUser');
+            username = localStorage.getItem('currentUser');
             if (!username) {
                 alert('Bạn cần đăng nhập trước!');
                 return;
@@ -51,15 +63,35 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
                 const data = await res.json();
                 if (res.ok && data.success) {
+                    localStorage.setItem('dt_base_' + username, data.dbname);
                     localStorage.setItem('dt_base', data.dbname);
-                    createDatabaseBtn.innerHTML = `<i class="fas fa-check"></i> Đã tạo database: ${data.dbname}`;
-                } else {
-                    createDatabaseBtn.disabled = false;
-                    createDatabaseBtn.innerHTML = `<i class="fas fa-exclamation-triangle"></i> ${data.detail || 'Tạo database thất bại!'}`;
                 }
+                updateDbButtons();
             } catch (err) {
                 createDatabaseBtn.disabled = false;
                 createDatabaseBtn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Server error!';
+            }
+        });
+        deleteDatabaseBtn.addEventListener('click', async function() {
+            username = localStorage.getItem('currentUser');
+            if (!username || !dt_base) return;
+            deleteDatabaseBtn.disabled = true;
+            deleteDatabaseBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang xóa database...';
+            try {
+                const res = await fetch(API_BASE_URL + '/delete_database', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username })
+                });
+                const data = await res.json();
+                if (res.ok && data.success) {
+                    localStorage.setItem('dt_base_' + username, '');
+                    localStorage.setItem('dt_base', '');
+                }
+                updateDbButtons();
+            } catch (err) {
+                deleteDatabaseBtn.disabled = false;
+                deleteDatabaseBtn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Server error!';
             }
         });
     }
@@ -85,6 +117,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.log('SignIn response:', data);
                 if (res.ok && data.success) {
                     localStorage.setItem('currentUser', username);
+                    // Khi đăng nhập, lấy đúng database của user này từ backend
+                    localStorage.setItem('dt_base_' + username, data.dtbase || '');
+                    localStorage.setItem('dt_base', data.dtbase || '');
+                    if (typeof updateDbButtons === 'function') updateDbButtons();
                     signinSection.style.display = 'none';
                     mainSection.style.display = '';
                 } else {
