@@ -1,13 +1,17 @@
+from dotenv import load_dotenv
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 import asyncpg
 import os
+from os import getenv
 
 router = APIRouter()
 
-PG_HOST = os.getenv("PG_HOST")
-PG_USER = os.getenv("PG_USER")
-PG_PASSWORD = os.getenv("PG_PASSWORD")
+load_dotenv()
+PG_HOST=os.getenv("PG_HOST")
+PG_USER=os.getenv("PG_USER")
+PG_PASSWORD=os.getenv("PG_PASSWORD")
+OLLAMA_HOST=os.getenv("OLLAMA_HOST")
 
 class SignInRequest(BaseModel):
     username: str

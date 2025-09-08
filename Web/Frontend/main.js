@@ -27,16 +27,22 @@ const resultSection = document.getElementById('resultSection');
 
 document.addEventListener('DOMContentLoaded', function() {
     // Tạo database button
-    const createDbBtn = document.getElementById('createDbBtn');
-    const createDbResult = document.getElementById('createDbResult');
-    if (createDbBtn) {
-        createDbBtn.addEventListener('click', async function() {
+    const createDatabaseBtn = document.getElementById('createDatabaseBtn');
+    if (createDatabaseBtn) {
+        // Kiểm tra nếu đã có database thì disable nút và hiển thị tên database
+        const dt_base = localStorage.getItem('dt_base');
+        if (dt_base) {
+            createDatabaseBtn.disabled = true;
+            createDatabaseBtn.innerHTML = `<i class="fas fa-check"></i> Đã tạo database: ${dt_base}`;
+        }
+        createDatabaseBtn.addEventListener('click', async function() {
             const username = localStorage.getItem('currentUser');
             if (!username) {
-                createDbResult.textContent = 'Bạn cần đăng nhập trước!';
+                alert('Bạn cần đăng nhập trước!');
                 return;
             }
-            createDbResult.textContent = 'Đang tạo database...';
+            createDatabaseBtn.disabled = true;
+            createDatabaseBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang tạo database...';
             try {
                 const res = await fetch(API_BASE_URL + '/create_database', {
                     method: 'POST',
@@ -45,12 +51,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
                 const data = await res.json();
                 if (res.ok && data.success) {
-                    createDbResult.textContent = `Đã tạo database: ${data.dbname}`;
+                    localStorage.setItem('dt_base', data.dbname);
+                    createDatabaseBtn.innerHTML = `<i class="fas fa-check"></i> Đã tạo database: ${data.dbname}`;
                 } else {
-                    createDbResult.textContent = data.detail || 'Tạo database thất bại!';
+                    createDatabaseBtn.disabled = false;
+                    createDatabaseBtn.innerHTML = `<i class="fas fa-exclamation-triangle"></i> ${data.detail || 'Tạo database thất bại!'}`;
                 }
             } catch (err) {
-                createDbResult.textContent = 'Server error!';
+                createDatabaseBtn.disabled = false;
+                createDatabaseBtn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Server error!';
             }
         });
     }
