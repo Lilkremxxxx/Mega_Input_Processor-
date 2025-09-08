@@ -316,6 +316,11 @@ async function uploadFiles(files, endpoint) {
     resultSection.innerHTML = '';
     const formData = new FormData();
     files.forEach(file => formData.append('files', file));
+    // Thêm biến dt_base vào formData
+    const dt_base = localStorage.getItem('dt_base');
+    if (dt_base) {
+        formData.append('dt_base', dt_base);
+    }
     // Sử dụng XMLHttpRequest để lấy tiến trình upload
     const xhr = new XMLHttpRequest();
     xhr.open('POST', API_BASE_URL + endpoint, true);

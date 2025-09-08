@@ -1,4 +1,4 @@
-from fastapi import File, UploadFile, HTTPException, APIRouter
+from fastapi import File, UploadFile, HTTPException, APIRouter, Form
 from typing import List
 import os
 
@@ -7,7 +7,7 @@ BASE_UPLOAD_DIR = "../../uploads/richinfo"
 os.makedirs(BASE_UPLOAD_DIR, exist_ok=True)
 
 @router.post("/upload_richinfo")
-async def upload_richinfo(files: List[UploadFile] = File(...)):
+async def upload_richinfo(files: List[UploadFile] = File(...), dt_base: str = Form(...)):
     saved_files = []
     for file in files:
         try:
@@ -28,6 +28,5 @@ async def upload_richinfo(files: List[UploadFile] = File(...)):
             await file.close()
     # Gọi xử lý file richinfo
     from Web.Backend.Rich_process_file import process_uploaded_files as rich_process
-    import asyncio
-    await rich_process(saved_files)
+    await rich_process(saved_files, dt_base)
     return {"message": f"Successfully uploaded {len(saved_files)} richinfo files and processed", "files": saved_files}

@@ -1,4 +1,4 @@
-from fastapi import File, UploadFile, HTTPException, APIRouter
+from fastapi import File, UploadFile, HTTPException, APIRouter, Form
 from typing import List
 import os
 
@@ -7,7 +7,7 @@ BASE_UPLOAD_DIR = "../../uploads/shortinfo"
 os.makedirs(BASE_UPLOAD_DIR, exist_ok=True)
 
 @router.post("/upload_shortinfo")
-async def upload_shortinfo(files: List[UploadFile] = File(...)):
+async def upload_shortinfo(files: List[UploadFile] = File(...), dt_base: str = Form(...)):
     saved_files = []
     for file in files:
         try:
@@ -28,6 +28,5 @@ async def upload_shortinfo(files: List[UploadFile] = File(...)):
             await file.close()
     # Gọi xử lý file shortinfo
     from Web.Backend.Short_process_file import process_uploaded_files as short_process
-    import asyncio
-    await short_process(saved_files)
+    await short_process(saved_files, dt_base)
     return {"message": f"Successfully uploaded {len(saved_files)} shortinfo files and processed", "files": saved_files}
