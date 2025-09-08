@@ -72,8 +72,8 @@ async def csv_process(file_path):
     conn.autocommit = True
     cur = conn.cursor()
 
-    cur.execute(f'DROP DATABASE IF EXISTS "{DB_NAME}"')
-    cur.execute(f'CREATE DATABASE "{DB_NAME}"')
+    cur.execute(f'DROP DATABASE IF EXISTS "{name_dtb}"')
+    cur.execute(f'CREATE DATABASE "{name_dtb}"')
 
     cur.close()
     conn.close()
@@ -84,7 +84,6 @@ async def csv_process(file_path):
         user=PG_USER, password=PG_PASSWORD
     )
 
-    await conn1.execute(f'CREATE TABLE IF NOT EXISTS "{name_dtb}";')
     await conn1.execute(f'DROP TABLE IF EXISTS "{name_dtb}";')
     columns_def = ", ".join([f'"{col}" text' for col in columns])
     await conn1.execute(f'CREATE TABLE IF NOT EXISTS "{name_dtb}" ({columns_def});')

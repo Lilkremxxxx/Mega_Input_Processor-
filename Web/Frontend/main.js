@@ -26,6 +26,68 @@ const progressText = document.getElementById('progressText');
 const resultSection = document.getElementById('resultSection');
 
 document.addEventListener('DOMContentLoaded', function() {
+    // Tạo database button
+    const createDbBtn = document.getElementById('createDbBtn');
+    const createDbResult = document.getElementById('createDbResult');
+    if (createDbBtn) {
+        createDbBtn.addEventListener('click', async function() {
+            const username = localStorage.getItem('currentUser');
+            if (!username) {
+                createDbResult.textContent = 'Bạn cần đăng nhập trước!';
+                return;
+            }
+            createDbResult.textContent = 'Đang tạo database...';
+            try {
+                const res = await fetch(API_BASE_URL + '/create_database', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username })
+                });
+                const data = await res.json();
+                if (res.ok && data.success) {
+                    createDbResult.textContent = `Đã tạo database: ${data.dbname}`;
+                } else {
+                    createDbResult.textContent = data.detail || 'Tạo database thất bại!';
+                }
+            } catch (err) {
+                createDbResult.textContent = 'Server error!';
+            }
+        });
+    }
+    // Sign In logic
+    const signinForm = document.getElementById('signinForm');
+    const signinSection = document.getElementById('signinSection');
+    const mainSection = document.getElementById('mainSection');
+    const signinError = document.getElementById('signinError');
+
+    if (signinForm) {
+        signinForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+            signinError.style.display = 'none';
+            try {
+                const res = await fetch(API_BASE_URL + '/signin', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                const data = await res.json();
+                console.log('SignIn response:', data);
+                if (res.ok && data.success) {
+                    localStorage.setItem('currentUser', username);
+                    signinSection.style.display = 'none';
+                    mainSection.style.display = '';
+                } else {
+                    signinError.textContent = data.detail || 'Sign in failed!';
+                    signinError.style.display = 'block';
+                }
+            } catch (err) {
+                signinError.textContent = 'Server error!';
+                signinError.style.display = 'block';
+            }
+        });
+    }
     // ShortInfo events
     if (shortinfoBrowseBtn && shortinfoFileInput) {
         shortinfoBrowseBtn.addEventListener('click', function() {

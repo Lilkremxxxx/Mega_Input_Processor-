@@ -1,6 +1,8 @@
 import os
 from Web.Backend.shortinfo_upload import router as shortinfo_router
 from Web.Backend.richinfo_upload import router as richinfo_router
+from Web.Backend.signin_api import router as signin_router
+from Web.Backend.create_database_api import router as create_db_router
 import asyncio
 from fastapi import File, UploadFile, HTTPException, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -10,6 +12,8 @@ from typing import List
 from process_files import process_uploaded_files
 
 app = FastAPI(title="Mega Input Processor", description="File Upload API", version="1.0.0")
+app.include_router(signin_router)
+app.include_router(create_db_router)
 app.include_router(shortinfo_router)
 app.include_router(richinfo_router)
 
@@ -76,3 +80,4 @@ async def upload(files: List[UploadFile] = File(...)):
         print(f"Error while processing files: {e}")
 
     return {"message": f"Successfully uploaded {len(saved_files)} files", "files": saved_files}
+

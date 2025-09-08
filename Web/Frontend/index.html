@@ -17,7 +17,24 @@
             </div>
         </header>
 
-        <main>
+        <!-- Sign In Form -->
+        <div id="signinSection" style="max-width:400px;margin:32px auto;">
+            <h2>Sign In</h2>
+            <form id="signinForm">
+                <div style="margin-bottom:16px;">
+                    <label for="username">Username:</label>
+                    <input type="text" id="username" name="username" required style="width:100%;padding:8px;" value="u1">
+                </div>
+                <div style="margin-bottom:16px;">
+                    <label for="password">Password:</label>
+                    <input type="password" id="password" name="password" required style="width:100%;padding:8px;" value="1">
+                </div>
+                <button type="submit" style="width:100%;padding:10px 0;background:#1976d2;color:#fff;border:none;border-radius:4px;font-size:1.1em;">Sign In</button>
+            </form>
+            <div id="signinError" style="color:#d32f2f;margin-top:12px;display:none;"></div>
+        </div>
+
+        <main id="mainSection" style="display:none;">
             <div class="upload-section" style="display: flex; gap: 32px; justify-content: center; align-items: flex-start;">
                 <!-- ShortInfo Upload (Left) -->
                 <div style="flex:1; min-width:320px;">
