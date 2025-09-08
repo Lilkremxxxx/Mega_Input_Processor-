@@ -7,6 +7,9 @@ from dotenv import load_dotenv
 from os import getenv
 import asyncpg
 import openpyxl
+from PIL import Image
+from langchain_community.document_loaders.image import UnstructuredImageLoader
+import psycopg2
 
 load_dotenv()
 PG_HOST=os.getenv("PG_HOST")
@@ -29,10 +32,8 @@ async def process_uploaded_files(file_paths):
             await xlsx_process(file_path)
 
         elif ext in [".jpg", ".png"]:
-            from PIL import Image
-            img = Image.open(file_path)
-            print(f"Processed image: {file_path}, size: {img.size}")
-            
+            print('Hiện tại web chưa hỗ trợ định dạng ảnh')
+
         else:
             print(f"File {file_path} uploaded but no specific processing defined.")
            
@@ -40,10 +41,14 @@ async def process_uploaded_files(file_paths):
 async def csv_process(file_path):
     ''' Xử lý file csv: parse dữ liệu (columns + data)
     Sau đó insert vào database '''
-    
+
+    ''' lib csv bulitn - python
+    '''
+
     name_dtb = os.path.splitext(os.path.basename(file_path))[0]
     df = pd.read_csv(file_path, nrows=0, delimiter=',', encoding="utf-8-sig")
-    columns = df.columns.tolist()[0].split(",") 
+    columns = df.columns.tolist()[0].split(",")
+
     # Loader
     loader = CSVLoader(
         file_path=file_path,
@@ -53,15 +58,36 @@ async def csv_process(file_path):
     docs = []
     async for doc in loader.alazy_load():
         docs.append(doc)
-    conn = await asyncpg.connect(
-        host=PG_HOST, database=PG_DBNAME,
+
+    '''Kết nối đến host của mình, bỏ biến database, khi hàm connect chạy thì sẽ trỏ vào database
+    mới tạo trùng với tên user. Dùng psycopg2 để tạo database vì asyncpg không hỗ trợ tạo database 
+    trong cùng 1 transaction block
+    ''' 
+
+    conn = psycopg2.connect(
+        host=PG_HOST,dbname="postgres",
         user=PG_USER, password=PG_PASSWORD
     )
-    #Nếu bảng tồn tại thì xóa
-    await conn.execute(f'DROP TABLE IF EXISTS "{name_dtb}";')
 
+    conn.autocommit = True
+    cur = conn.cursor()
+
+    cur.execute(f'DROP DATABASE IF EXISTS "{DB_NAME}"')
+    cur.execute(f'CREATE DATABASE "{DB_NAME}"')
+
+    cur.close()
+    conn.close()
+
+
+    conn1 = await asyncpg.connect(
+        host=PG_HOST, database=name_dtb,
+        user=PG_USER, password=PG_PASSWORD
+    )
+
+    await conn1.execute(f'CREATE TABLE IF NOT EXISTS "{name_dtb}";')
+    await conn1.execute(f'DROP TABLE IF EXISTS "{name_dtb}";')
     columns_def = ", ".join([f'"{col}" text' for col in columns])
-    await conn.execute(f'CREATE TABLE IF NOT EXISTS "{name_dtb}" ({columns_def});')
+    await conn1.execute(f'CREATE TABLE IF NOT EXISTS "{name_dtb}" ({columns_def});')
     Contents = [doc.page_content for doc in docs]
     for item in Contents:
         _, value_part = item.split(":", 1)
@@ -69,8 +95,8 @@ async def csv_process(file_path):
         placeholders = ','.join([f'${i+1}' for i in range(len(columns))])
         columns_sql = ', '.join(f'"{col}"' for col in columns)
         insert_sql = f'INSERT INTO "{name_dtb}" ({columns_sql}) VALUES ({placeholders})'
-        await conn.execute(insert_sql, *values)
-    await conn.close()
+        await conn1.execute(insert_sql, *values)
+    await conn1.close()
     print(f"✅ Created table {name_dtb} and inserted {len(docs)} rows.")
 
 
@@ -107,5 +133,18 @@ async def xlsx_process(file_path):
         print(f"✅ Created table {table_name} and inserted {len(df)} rows.")
     await conn.close()
     print(f"✅ Processed {len(sheet_names)} sheets with total {total_rows} rows.")
+
+async def img_process(file_path):
+    """Xử lý ảnh đơn giản - chỉ đọc và hiển thị thông tin cơ bản"""
+    try:
+        img = Image.open(file_path)
+        print(f"✅ Processed image: {os.path.basename(file_path)}")
+        print(f"   - Size: {img.size}")
+        print(f"   - Format: {img.format}")
+        print(f"   - Mode: {img.mode}")
+
+        
+    except Exception as e:
+        print(f"❌ Error processing image {file_path}: {str(e)}")
 
     

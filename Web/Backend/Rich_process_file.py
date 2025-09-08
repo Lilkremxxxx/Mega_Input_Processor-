@@ -21,11 +21,11 @@ async def process_uploaded_files(file_paths):
     """
     for file_path in file_paths:
         ext = os.path.splitext(file_path)[1].lower()
-        if ext == ".csv":
-           await csv_process(file_path)
+        if ext == ".xlsx":
+           await xlsx_process_rich(file_path)
 
-        elif ext == '.docx' or ext == '.txt':
-            await docx_text_process(file_path)
+        elif ext == '.docx' or ext == '.txt' or ext == '.pdf':
+            print('hello')
         
 
         elif ext in [".jpg", ".png"]:
@@ -37,6 +37,10 @@ async def process_uploaded_files(file_paths):
             print(f"File {file_path} uploaded but no specific processing defined.")
             # Có thể thêm xử lý chung cho text files, etc.
 
+
+def xlsx_process_rich(file_path):
+    """Xử lý file xlsx cho RichInfo"""
+    pass
             
 async def docx_text_process(file_path):
     name_dtb = os.path.splitext(os.path.basename(file_path))[0]

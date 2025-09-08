@@ -13,7 +13,7 @@ async def upload_richinfo(files: List[UploadFile] = File(...)):
         try:
             _, ext = os.path.splitext(file.filename)
             ext = ext.lower().lstrip(".")
-            if ext not in ["csv", "xlsx", "docx", "txt", "jpg", "png"]:
+            if ext not in ["csv", "xlsx", "docx", "txt", "pdf", "jpg", "png"]:
                 raise HTTPException(status_code=400, detail=f"File {file.filename} không đúng định dạng richinfo!")
             subdir = os.path.join(BASE_UPLOAD_DIR, ext)
             os.makedirs(subdir, exist_ok=True)

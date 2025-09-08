@@ -133,6 +133,7 @@ function updateShortinfoFilesList() {
             else if (ext === 'jpg' || ext === 'jpeg' || ext === 'png') icon = '<i class="fas fa-file-image"></i>';
             else if (ext === 'docx') icon = '<i class="fas fa-file-word"></i>';
             else if (ext === 'txt') icon = '<i class="fas fa-file-alt"></i>';
+            else if (ext === 'pdf') icon = '<i class="fas fa-file-pdf"></i>';
             else icon = '<i class="fas fa-file"></i>';
             // Nút xóa
             const removeBtn = document.createElement('button');
@@ -173,6 +174,7 @@ function updateRichinfoFilesList() {
             else if (ext === 'jpg' || ext === 'jpeg' || ext === 'png') icon = '<i class="fas fa-file-image"></i>';
             else if (ext === 'docx') icon = '<i class="fas fa-file-word"></i>';
             else if (ext === 'txt') icon = '<i class="fas fa-file-alt"></i>';
+            else if (ext === 'pdf') icon = '<i class="fas fa-file-pdf"></i>';
             else icon = '<i class="fas fa-file"></i>';
             // Nút xóa
             const removeBtn = document.createElement('button');
