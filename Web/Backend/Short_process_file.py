@@ -16,7 +16,7 @@ PG_HOST=os.getenv("PG_HOST")
 PG_DBNAME=os.getenv("PG_DBNAME")
 PG_USER=os.getenv("PG_USER")
 PG_PASSWORD=os.getenv("PG_PASSWORD")
-OLLAMA_HOST=os.getenv("OLLAMA_HOST")
+
 
 async def process_uploaded_files(file_paths, dt_base):
     """
@@ -38,17 +38,10 @@ async def process_uploaded_files(file_paths, dt_base):
 async def csv_process(file_path, dt_base):
     ''' Xử lý file csv: parse dữ liệu (columns + data)
     Sau đó insert vào database '''
-
-    # Chuẩn hóa tên bảng để tránh lỗi
-    name_tbl = os.path.splitext(os.path.basename(file_path))[0]
-    name_tbl = ''.join(e for e in name_tbl if e.isalnum() or e == '_')
-    # Giới hạn độ dài tên bảng
-    if len(name_tbl) > 60:
-        name_tbl = name_tbl[:60]
-        
+    
+    name_dtb = os.path.splitext(os.path.basename(file_path))[0]
     df = pd.read_csv(file_path, nrows=0, delimiter=',', encoding="utf-8-sig")
-    columns = df.columns.tolist()
-
+    columns = df.columns.tolist()[0].split(",") 
     # Loader
     loader = CSVLoader(
         file_path=file_path,
@@ -58,33 +51,26 @@ async def csv_process(file_path, dt_base):
     docs = []
     async for doc in loader.alazy_load():
         docs.append(doc)
-
-    '''Kết nối đến host của mình, bỏ biến database, khi hàm connect chạy thì sẽ trỏ vào database
-    mới tạo trùng với tên user. Dùng psycopg2 để tạo database vì asyncpg không hỗ trợ tạo database 
-    trong cùng 1 transaction block
-    ''' 
-
-    # Kết nối vào database dt_base
-    conn1 = await asyncpg.connect(
+    conn = await asyncpg.connect(
         host=PG_HOST, database=dt_base,
         user=PG_USER, password=PG_PASSWORD
     )
-    await conn1.execute(f'DROP TABLE IF EXISTS "{name_tbl}";')
+    #Nếu bảng tồn tại thì xóa
+    await conn.execute(f'DROP TABLE IF EXISTS "{name_dtb}";')
+
     columns_def = ", ".join([f'"{col}" text' for col in columns])
-
-    await conn1.execute(f'CREATE TABLE IF NOT EXISTS "{name_tbl}" ({columns_def});')
+    await conn.execute(f'CREATE TABLE IF NOT EXISTS "{name_dtb}" ({columns_def});')
     Contents = [doc.page_content for doc in docs]
-
     for item in Contents:
         _, value_part = item.split(":", 1)
         values = [v.strip() for v in value_part.split(",")]
         placeholders = ','.join([f'${i+1}' for i in range(len(columns))])
         columns_sql = ', '.join(f'"{col}"' for col in columns)
-        insert_sql = f'INSERT INTO "{name_tbl}" ({columns_sql}) VALUES ({placeholders})'
-        await conn1.execute(insert_sql, *values)
-        
-    await conn1.close()
-    print(f"✅ Created table {name_tbl} and inserted {len(docs)} rows.")
+        insert_sql = f'INSERT INTO "{name_dtb}" ({columns_sql}) VALUES ({placeholders})'
+        await conn.execute(insert_sql, *values)
+    await conn.close()
+    print(f"✅ Created table {name_dtb} and inserted {len(docs)} rows.")
+
 
 
 
@@ -97,7 +83,6 @@ async def xlsx_process(file_path, dt_base):
     xls = pd.ExcelFile(file_path)
     sheet_names = xls.sheet_names
     conn = await asyncpg.connect(host=PG_HOST, database=dt_base, user=PG_USER, password=PG_PASSWORD)
-    total_rows = 0
     # Xử lý từng sheet
     for sheet_name in sheet_names:
         # Tên bảng = tên file + tên sheet
@@ -116,10 +101,8 @@ async def xlsx_process(file_path, dt_base):
             columns_sql = ', '.join(f'"{col}"' for col in columns)
             insert_sql = f'INSERT INTO "{table_name}" ({columns_sql}) VALUES ({placeholders})'
             await conn.execute(insert_sql, *values)
-        total_rows += len(df)
         print(f"✅ Created table {table_name} and inserted {len(df)} rows.")
     await conn.close()
-    print(f"✅ Processed {len(sheet_names)} sheets with total {total_rows} rows.")
 
 async def img_process(file_path):
     """Xử lý ảnh đơn giản - chỉ đọc và hiển thị thông tin cơ bản"""

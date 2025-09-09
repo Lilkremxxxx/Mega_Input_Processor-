@@ -2,6 +2,8 @@ from fastapi import File, UploadFile, HTTPException, APIRouter, Form
 from typing import List
 import os
 
+
+
 router = APIRouter()
 BASE_UPLOAD_DIR = "../../uploads/richinfo"
 os.makedirs(BASE_UPLOAD_DIR, exist_ok=True)

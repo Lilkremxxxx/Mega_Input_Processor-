@@ -13,3 +13,4 @@ unstructured[docx]
 openpyxl
 pdfminer
 psycopg2
+langchain_ollama
