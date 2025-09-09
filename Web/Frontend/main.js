@@ -31,30 +31,68 @@ document.addEventListener('DOMContentLoaded', function() {
     const deleteDatabaseBtn = document.getElementById('deleteDatabaseBtn');
     let username = localStorage.getItem('currentUser');
     let dt_base = '';
+    
     function updateDbButtons() {
         username = localStorage.getItem('currentUser');
-        dt_base = localStorage.getItem('dt_base_' + username) || '';
+        // Lấy dt_base mới nhất từ localStorage
+        let latest_dt_base = localStorage.getItem('dt_base_' + username) || '';
+        dt_base = latest_dt_base;
         localStorage.setItem('dt_base', dt_base);
+        
         if (dt_base) {
             createDatabaseBtn.disabled = true;
-            createDatabaseBtn.innerHTML = `<i class="fas fa-check"></i> Đã tạo database: ${dt_base}`;
+            createDatabaseBtn.innerHTML = `<i class="fas fa-check"></i> Đã tạo xong: ${dt_base}`;
+            
+            // Hiển thị nút xóa
             deleteDatabaseBtn.style.display = '';
+            deleteDatabaseBtn.disabled = false;
+            deleteDatabaseBtn.innerHTML = '<i class="fas fa-trash"></i> Xóa Database';
         } else {
             createDatabaseBtn.disabled = false;
             createDatabaseBtn.innerHTML = '<i class="fas fa-database"></i> Tạo Database';
             deleteDatabaseBtn.style.display = 'none';
+            deleteDatabaseBtn.disabled = true;
         }
     }
     if (createDatabaseBtn && deleteDatabaseBtn) {
-        updateDbButtons();
-        createDatabaseBtn.addEventListener('click', async function() {
+        // Thiết lập nút ban đầu
+        function setupInitialButtons() {
+            username = localStorage.getItem('currentUser');
+            let latest_dt_base = localStorage.getItem('dt_base_' + username) || '';
+            dt_base = latest_dt_base;
+            localStorage.setItem('dt_base', dt_base);
+            
+            if (dt_base) {
+                createDatabaseBtn.disabled = true;
+                createDatabaseBtn.innerHTML = `<i class="fas fa-check"></i> Đã tạo database: ${dt_base}`;
+                
+                // Hiển thị và kích hoạt nút xóa
+                deleteDatabaseBtn.style.display = '';
+                deleteDatabaseBtn.disabled = false;
+                deleteDatabaseBtn.innerHTML = '<i class="fas fa-trash"></i> Xóa Database';
+            } else {
+                createDatabaseBtn.disabled = false;
+                createDatabaseBtn.innerHTML = '<i class="fas fa-database"></i> Tạo Database';
+                deleteDatabaseBtn.style.display = 'none';
+                deleteDatabaseBtn.disabled = true;
+            }
+        }
+        
+        // Thiết lập ban đầu
+        setupInitialButtons();
+        
+        // Event handler cho nút tạo database
+        createDatabaseBtn.onclick = async function() {
             username = localStorage.getItem('currentUser');
             if (!username) {
                 alert('Bạn cần đăng nhập trước!');
                 return;
             }
+            
+            // Cập nhật nút tạo database
             createDatabaseBtn.disabled = true;
             createDatabaseBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang tạo database...';
+            
             try {
                 const res = await fetch(API_BASE_URL + '/create_database', {
                     method: 'POST',
@@ -62,21 +100,55 @@ document.addEventListener('DOMContentLoaded', function() {
                     body: JSON.stringify({ username })
                 });
                 const data = await res.json();
+                
                 if (res.ok && data.success) {
-                    localStorage.setItem('dt_base_' + username, data.dbname);
-                    localStorage.setItem('dt_base', data.dbname);
+                    // Sau khi tạo, gọi lại API /signin để lấy trạng thái database mới nhất
+                    const res2 = await fetch(API_BASE_URL + '/signin', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ username, password: document.getElementById('password').value })
+                    });
+                    const data2 = await res2.json();
+                    
+                    if (res2.ok && data2.success) {
+                        localStorage.setItem('dt_base_' + username, data2.database || '');
+                        localStorage.setItem('dt_base', data2.database || '');
+                        
+                        // Đổi trạng thái nút tạo database
+                        createDatabaseBtn.disabled = true;
+                        createDatabaseBtn.innerHTML = `<i class="fas fa-check"></i> Đã tạo xong: ${data2.database}`;
+                        
+                        // Đảm bảo nút xóa được hiển thị đúng
+                        deleteDatabaseBtn.style.display = '';
+                        deleteDatabaseBtn.disabled = false;
+                        deleteDatabaseBtn.innerHTML = '<i class="fas fa-trash"></i> Xóa Database';
+                    } else {
+                        setupInitialButtons();
+                    }
+                } else {
+                    createDatabaseBtn.disabled = false;
+                    createDatabaseBtn.innerHTML = `<i class="fas fa-exclamation-triangle"></i> ${data.detail || 'Tạo database thất bại!'}`;
                 }
-                updateDbButtons();
             } catch (err) {
+                console.error("Lỗi khi tạo database:", err);
                 createDatabaseBtn.disabled = false;
                 createDatabaseBtn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Server error!';
             }
-        });
-        deleteDatabaseBtn.addEventListener('click', async function() {
+        };
+        
+        // Event handler cho nút xóa database
+        deleteDatabaseBtn.onclick = async function() {
             username = localStorage.getItem('currentUser');
-            if (!username || !dt_base) return;
+            // Lấy lại dt_base mới nhất trước khi xóa
+            let latest_dt_base = localStorage.getItem('dt_base_' + username) || '';
+            dt_base = latest_dt_base;
+            
+            if (!username || !dt_base || deleteDatabaseBtn.disabled) {
+                return;
+            }
             deleteDatabaseBtn.disabled = true;
             deleteDatabaseBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang xóa database...';
+            
             try {
                 const res = await fetch(API_BASE_URL + '/delete_database', {
                     method: 'POST',
@@ -84,17 +156,42 @@ document.addEventListener('DOMContentLoaded', function() {
                     body: JSON.stringify({ username })
                 });
                 const data = await res.json();
+                
                 if (res.ok && data.success) {
+                    // Sau khi xóa, gọi lại API /signin để lấy trạng thái database mới nhất
+                    const res2 = await fetch(API_BASE_URL + '/signin', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ username, password: document.getElementById('password').value })
+                    });
+                    const data2 = await res2.json();
+                    
+                    if (res2.ok && data2.success) {
+                        localStorage.setItem('dt_base_' + username, data2.database || '');
+                        localStorage.setItem('dt_base', data2.database || '');
+                    }
+                    
+                    // Sau khi xóa thành công, cập nhật localStorage
                     localStorage.setItem('dt_base_' + username, '');
                     localStorage.setItem('dt_base', '');
+                    
+                    // Cập nhật giao diện
+                    updateDbButtons();
+                } else {
+                    // Xóa thất bại, trả lại trạng thái nút
+                    deleteDatabaseBtn.disabled = false;
+                    deleteDatabaseBtn.innerHTML = '<i class="fas fa-trash"></i> Xóa Database';
+                    alert(data.detail || 'Không thể xóa database!');
                 }
-                updateDbButtons();
             } catch (err) {
+                console.error('Lỗi khi xóa database:', err);
                 deleteDatabaseBtn.disabled = false;
-                deleteDatabaseBtn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Server error!';
+                deleteDatabaseBtn.innerHTML = '<i class="fas fa-trash"></i> Xóa Database';
+                alert('Lỗi kết nối server!');
             }
-        });
+        };
     }
+    
     // Sign In logic
     const signinForm = document.getElementById('signinForm');
     const signinSection = document.getElementById('signinSection');
@@ -118,9 +215,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (res.ok && data.success) {
                     localStorage.setItem('currentUser', username);
                     // Khi đăng nhập, lấy đúng database của user này từ backend
-                    localStorage.setItem('dt_base_' + username, data.dtbase || '');
-                    localStorage.setItem('dt_base', data.dtbase || '');
+                    localStorage.setItem('dt_base_' + username, data.database || '');
+                    localStorage.setItem('dt_base', data.database || '');
+                    
+                    // Reset trạng thái đang xử lý khi đăng nhập
+                    isProcessingDelete = false;
+                    
+                    // Cập nhật trạng thái các nút
                     if (typeof updateDbButtons === 'function') updateDbButtons();
+                    
                     signinSection.style.display = 'none';
                     mainSection.style.display = '';
                 } else {

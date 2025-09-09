@@ -19,16 +19,25 @@ class SignInRequest(BaseModel):
 
 @router.post("/signin")
 async def signin(data: SignInRequest):
-    username = data.username.strip()
-    password = data.password
-    conn = await asyncpg.connect(host=PG_HOST, user=PG_USER, password=PG_PASSWORD, database="postgres")
-    user = await conn.fetchrow("SELECT * FROM users WHERE username=$1", username)
-    if not user:
+    try:
+        username = data.username.strip()
+        password = data.password
+        print(f"Đang đăng nhập: {username}")
+        conn = await asyncpg.connect(host=PG_HOST, user=PG_USER, password=PG_PASSWORD, database="postgres")
+        user = await conn.fetchrow("SELECT * FROM users WHERE username=$1", username)
+        if not user:
+            await conn.close()
+            print(f"Không tìm thấy user: {username}")
+            return {"success": False, "detail": "User không tồn tại!"}
+        if user['password'] != password:
+            await conn.close()
+            print(f"Sai mật khẩu cho user: {username}")
+            return {"success": False, "detail": "Sai mật khẩu!"}
+        database = user.get('database') or ""
         await conn.close()
-        return {"success": False, "detail": "User không tồn tại!"}
-    if user['password'] != password:
-        await conn.close()
-        return {"success": False, "detail": "Sai mật khẩu!"}
-    dtbase = user.get('dtbase') or ""
-    await conn.close()
-    return {"success": True, "username": username, "dtbase": dtbase}
+        
+        print(f"Đăng nhập thành công: {username}, database: {database}")
+        return {"success": True, "username": username, "database": database}
+    except Exception as e:
+        print(f"Lỗi đăng nhập: {str(e)}")
+        return {"success": False, "detail": f"Lỗi server: {str(e)}"}

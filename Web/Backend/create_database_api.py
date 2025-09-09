@@ -19,15 +19,27 @@ class CreateDbRequest(BaseModel):
 
 @router.post("/create_database")
 async def create_database(data: CreateDbRequest):
-    dbname = data.username.strip()
+    username = data.username.strip()
+    dbname = username
     try:
+        # Kiểm tra user đã có database chưa
+        conn_check = await asyncpg.connect(host=PG_HOST, user=PG_USER, password=PG_PASSWORD, database="postgres")
+        user = await conn_check.fetchrow("SELECT * FROM users WHERE username=$1", username)
+        if not user:
+            await conn_check.close()
+            return {"success": False, "detail": "User không tồn tại!"}
+        if user.get('database'):
+            await conn_check.close()
+            return {"success": False, "detail": f"User đã có database: {user['database']}"}
+        await conn_check.close()
+
+        # Tạo database mới
         conn = psycopg2.connect(
             host=PG_HOST, dbname="postgres",
             user=PG_USER, password=PG_PASSWORD
         )
         conn.autocommit = True
         cur = conn.cursor()
-        cur.execute(f'DROP DATABASE IF EXISTS "{dbname}"')
         cur.execute(f'CREATE DATABASE "{dbname}"')
         cur.close()
         conn.close()
@@ -41,7 +53,7 @@ async def create_database(data: CreateDbRequest):
 
         # Cập nhật cột dtbase cho user
         conn2 = await asyncpg.connect(host=PG_HOST, user=PG_USER, password=PG_PASSWORD, database="postgres")
-        await conn2.execute("UPDATE users SET dtbase=$1 WHERE username=$2", dbname, dbname)
+        await conn2.execute("UPDATE users SET database=$1 WHERE username=$2", dbname, username)
         await conn2.close()
 
         return {"success": True, "dbname": dbname}
@@ -54,7 +66,8 @@ class DeleteDbRequest(BaseModel):
 
 @router.post("/delete_database")
 async def delete_database(data: DeleteDbRequest):
-    dbname = data.username.strip()
+    username = data.username.strip()
+    dbname = username
     try:
         conn = psycopg2.connect(
             host=PG_HOST, dbname="postgres",
@@ -68,7 +81,7 @@ async def delete_database(data: DeleteDbRequest):
 
         # Cập nhật cột dtbase về trống cho user
         conn2 = await asyncpg.connect(host=PG_HOST, user=PG_USER, password=PG_PASSWORD, database="postgres")
-        await conn2.execute("UPDATE users SET dtbase='' WHERE username=$1", dbname)
+        await conn2.execute("UPDATE users SET database='' WHERE username=$1", username)
         await conn2.close()
 
         return {"success": True}
