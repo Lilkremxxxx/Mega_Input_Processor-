@@ -1,0 +1,25 @@
+Short info --> Database: Data theo dạng column có mức do ngữ nghĩa thấp (ví dụ những file về giá cả của sản phẩm, hoặc thông tin mô tả sản
+phẩm ngắn gọn)
+
+	- Lưu y:
+		+ CSV: Chỉ nhận 1 file csv với delimiter(",") - File CSV là file được dinh nghĩa là file chỉ có 1 sheet và chia các
+			column ra bởi delimiter.
+		+ XLSX: Nhận được nhiều sheets cùng lúc. 
+		+ IMG: Thêm vào sau nếu cần
+
+Rich info --> Đánh embedding --> đưa vào dtbase theo vector store.
+
+	- Lưu y:
+		+ Docs, Txt, PDF: 
+		+ XLSX: Nhưng file có mức do ngữ nghĩa cao de dung cho mục dich RAG ( Ví dụ nhung file câu hỏi - câu trả lời mẫu trong SALE)
+ 
+
+-- Cơ chế LocalStorage: là cơ chế lưu trữ của HTML5 duoc luu tru o dang cặp key - value
+
+--> dung co chế này de luu dt_base rồi dua vào query. Trong code thì sẽ lưu với mỗi user sẽ lưu vào dt_base_username và 1 biến chung
+de sủ dung là dt_base
+
+--> "// Thêm biến dt_base vào formData" -- khi upload file lên thì biến dt_base sẽ được doc tu LocalStorage rồi gửi kèm với form
+
+***Speed:
+	*100 dòng/15s

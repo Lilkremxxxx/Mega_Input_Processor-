@@ -39,9 +39,15 @@ async def csv_process(file_path, dt_base):
     ''' Xử lý file csv: parse dữ liệu (columns + data)
     Sau đó insert vào database '''
 
+    # Chuẩn hóa tên bảng để tránh lỗi
     name_tbl = os.path.splitext(os.path.basename(file_path))[0]
+    name_tbl = ''.join(e for e in name_tbl if e.isalnum() or e == '_')
+    # Giới hạn độ dài tên bảng
+    if len(name_tbl) > 60:
+        name_tbl = name_tbl[:60]
+        
     df = pd.read_csv(file_path, nrows=0, delimiter=',', encoding="utf-8-sig")
-    columns = df.columns.tolist()[0].split(",")
+    columns = df.columns.tolist()
 
     # Loader
     loader = CSVLoader(
@@ -124,7 +130,6 @@ async def img_process(file_path):
         print(f"   - Format: {img.format}")
         print(f"   - Mode: {img.mode}")
 
-        
     except Exception as e:
         print(f"❌ Error processing image {file_path}: {str(e)}")
 

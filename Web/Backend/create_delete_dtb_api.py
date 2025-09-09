@@ -16,7 +16,6 @@ class CreateDbRequest(BaseModel):
     username: str
 
 
-
 @router.post("/create_database")
 async def create_database(data: CreateDbRequest):
     username = data.username.strip()
@@ -24,6 +23,7 @@ async def create_database(data: CreateDbRequest):
     try:
         # Kiểm tra user đã có database chưa
         conn_check = await asyncpg.connect(host=PG_HOST, user=PG_USER, password=PG_PASSWORD, database="postgres")
+        
         user = await conn_check.fetchrow("SELECT * FROM users WHERE username=$1", username)
         if not user:
             await conn_check.close()

@@ -2,14 +2,13 @@ import os
 from Web.Backend.shortinfo_upload import router as shortinfo_router
 from Web.Backend.richinfo_upload import router as richinfo_router
 from Web.Backend.signin_api import router as signin_router
-from Web.Backend.create_database_api import router as create_db_router
+from Web.Backend.create_delete_dtb_api import router as create_db_router
 import asyncio
 from fastapi import File, UploadFile, HTTPException, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from typing import List
-from process_files import process_uploaded_files
 
 app = FastAPI(title="Mega Input Processor", description="File Upload API", version="1.0.0")
 app.include_router(signin_router)
@@ -72,12 +71,6 @@ async def upload(files: List[UploadFile] = File(...)):
             raise HTTPException(status_code=500, detail=f"Lỗi khi upload {file.filename}: {str(e)}")
         finally:
             await file.close()
-
-    # Sau khi upload xong, gọi hàm xử lý async
-    try:
-        await process_uploaded_files(saved_files)
-    except Exception as e:
-        print(f"Error while processing files: {e}")
 
     return {"message": f"Successfully uploaded {len(saved_files)} files", "files": saved_files}
 
