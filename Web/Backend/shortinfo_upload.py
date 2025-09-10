@@ -1,6 +1,6 @@
+import os
 from fastapi import File, UploadFile, HTTPException, APIRouter, Form
 from typing import List
-import os
 
 router = APIRouter()
 BASE_UPLOAD_DIR = "../../uploads/shortinfo"

@@ -2,13 +2,12 @@ import os
 import asyncio
 import pandas as pd
 from langchain_community.document_loaders import CSVLoader
+from langchain_community.document_loaders.image import UnstructuredImageLoader
 from langchain_unstructured import UnstructuredLoader
 from dotenv import load_dotenv
-from os import getenv
 import asyncpg
 import openpyxl
 from PIL import Image
-from langchain_community.document_loaders.image import UnstructuredImageLoader
 from datetime import datetime
 import time
 

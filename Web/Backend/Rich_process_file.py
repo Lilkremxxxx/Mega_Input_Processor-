@@ -1,22 +1,21 @@
-from csv import excel
 import os
 import asyncio
-import ollama
-import pandas as pd
 import logging
-from langchain_community.document_loaders import CSVLoader
-from langchain_unstructured import UnstructuredLoader
-from dotenv import load_dotenv
-from os import getenv
-import asyncpg
-from langchain_ollama import OllamaEmbeddings
-from langchain_community.document_loaders import PyPDFLoader
-from langchain_core.vectorstores import InMemoryVectorStore
-from langchain_community.document_loaders import Docx2txtLoader
-from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_ollama import OllamaEmbeddings
-from datetime import datetime
 import time
+import pandas as pd
+import asyncpg
+import ollama
+from datetime import datetime
+from dotenv import load_dotenv
+from langchain_ollama import OllamaEmbeddings
+from langchain_core.vectorstores import InMemoryVectorStore
+from langchain_community.document_loaders import CSVLoader, PyPDFLoader, Docx2txtLoader
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_unstructured import UnstructuredLoader
+
+# Tắt các log không cần thiết
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("httpcore").setLevel(logging.WARNING)
 
 
 

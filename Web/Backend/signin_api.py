@@ -1,9 +1,8 @@
-from dotenv import load_dotenv
+import os
+import asyncpg
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
-import asyncpg
-import os
-from os import getenv
+from dotenv import load_dotenv
 
 router = APIRouter()
 

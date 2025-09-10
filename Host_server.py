@@ -1,14 +1,14 @@
 import os
-from Web.Backend.shortinfo_upload import router as shortinfo_router
-from Web.Backend.richinfo_upload import router as richinfo_router
-from Web.Backend.signin_api import router as signin_router
-from Web.Backend.create_delete_dtb_api import router as create_db_router
 import asyncio
+from typing import List
 from fastapi import File, UploadFile, HTTPException, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
-from typing import List
+from Web.Backend.shortinfo_upload import router as shortinfo_router
+from Web.Backend.richinfo_upload import router as richinfo_router
+from Web.Backend.signin_api import router as signin_router
+from Web.Backend.create_delete_dtb_api import router as create_db_router
 
 app = FastAPI(title="Mega Input Processor", description="File Upload API", version="1.0.0")
 app.include_router(signin_router)
