@@ -16,3 +16,4 @@ psycopg2
 langchain_ollama
 pypdf
 torch
+libmagic

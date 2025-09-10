@@ -9,6 +9,8 @@ import asyncpg
 import openpyxl
 from PIL import Image
 from langchain_community.document_loaders.image import UnstructuredImageLoader
+from datetime import datetime
+import time
 
 
 load_dotenv()
@@ -38,6 +40,8 @@ async def process_uploaded_files(file_paths, dt_base):
 async def csv_process(file_path, dt_base):
     ''' Xử lý file csv: parse dữ liệu (columns + data)
     Sau đó insert vào database '''
+
+    start_time = datetime.now()
     
     name_dtb = os.path.splitext(os.path.basename(file_path))[0]
     df = pd.read_csv(file_path, nrows=0, delimiter=',', encoding="utf-8-sig")
@@ -70,6 +74,9 @@ async def csv_process(file_path, dt_base):
         await conn.execute(insert_sql, *values)
     await conn.close()
     print(f"✅ Created table {name_dtb} and inserted {len(docs)} rows.")
+    end_time = datetime.now()
+    duration = end_time - start_time
+    print("Thời gian xử lý:", duration.total_seconds())
 
 
 
@@ -77,7 +84,8 @@ async def csv_process(file_path, dt_base):
 async def xlsx_process(file_path, dt_base):
     ''' Xử lý file xlsx: parse dữ liệu (columns + data) từ tất cả sheets
     Mỗi sheet sẽ thành một bảng riêng biệt'''
-    
+    start_time = datetime.now()
+
     base_name = os.path.splitext(os.path.basename(file_path))[0]
     # Đọc tất cả sheet names
     xls = pd.ExcelFile(file_path)
@@ -103,6 +111,9 @@ async def xlsx_process(file_path, dt_base):
             await conn.execute(insert_sql, *values)
         print(f"✅ Created table {table_name} and inserted {len(df)} rows.")
     await conn.close()
+    end_time = datetime.now()
+    duration = end_time - start_time
+    print("Thời gian xử lý:", duration.total_seconds())
 
 async def img_process(file_path):
     """Xử lý ảnh đơn giản - chỉ đọc và hiển thị thông tin cơ bản"""
