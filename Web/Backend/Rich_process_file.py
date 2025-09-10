@@ -69,7 +69,7 @@ async def xlsx_process_rich(file_path, dt_base):
     conn = await asyncpg.connect(host=PG_HOST, database=dt_base, user=PG_USER, password=PG_PASSWORD)
 
     await conn.execute(f'DROP TABLE IF EXISTS "{embed_name}";')
-    await conn.execute(f'CREATE TABLE "{embed_name}" (id SERIAL PRIMARY KEY, question TEXT, answer TEXT, note TEXT, question_embedded TEXT);')
+    await conn.execute(f'CREATE TABLE "{embed_name}" (id SERIAL PRIMARY KEY, question TEXT, answer TEXT, note TEXT, vector_embedded TEXT);')
 
     # Tắt thông báo console cho Ollama
     original_level = logging.getLogger().getEffectiveLevel()
@@ -95,7 +95,7 @@ async def xlsx_process_rich(file_path, dt_base):
         question = str(questions[i]) if not pd.isna(questions[i]) else ""
         answer = str(answers[i]) if not pd.isna(answers[i]) else ""
         note = str(notes[i]) if not pd.isna(notes[i]) else None
-        await conn.execute(f"INSERT INTO \"{embed_name}\" (question, answer, note, question_embedded) VALUES ($1, $2, $3, $4)", 
+        await conn.execute(f"INSERT INTO \"{embed_name}\" (question, answer, note, vector_embedded) VALUES ($1, $2, $3, $4)", 
                     question, answer, note, question_embedded)
     print(f"✅ Created table {embed_name} and embedded {len(questions)} rows.")
 
@@ -119,7 +119,7 @@ async def docx_text_pdf_process(file_path, dt_base):
 
     print(f"Đang tạo bảng {embed_name}")
     await conn.execute(f'DROP TABLE IF EXISTS "{embed_name}";')
-    await conn.execute(f'CREATE TABLE "{embed_name}" (id SERIAL PRIMARY KEY, Original_Text TEXT, Text_embedded TEXT);')
+    await conn.execute(f'CREATE TABLE "{embed_name}" (id SERIAL PRIMARY KEY, Original_Text TEXT, vector_embedded TEXT);')
 
     print(f"Đang đọc tài liệu")
     # Tắt thông báo console cho Ollama
@@ -155,7 +155,7 @@ async def docx_text_pdf_process(file_path, dt_base):
         text_embedded = embedding_list[i]
         text = str(Original[i]) if not pd.isna(Original[i]) else ""
 
-        await conn.execute(f"INSERT INTO \"{embed_name}\" (Original_Text, Text_embedded) VALUES ($1, $2)", 
+        await conn.execute(f"INSERT INTO \"{embed_name}\" (Original_Text, vector_embedded) VALUES ($1, $2)", 
                     text, text_embedded)
     print(f"✅ Created table {embed_name} and embedded {len(Original)} rows.")
 
