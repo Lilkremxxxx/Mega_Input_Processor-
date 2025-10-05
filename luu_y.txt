@@ -1,4 +1,5 @@
-Short info --> Database: Data theo dạng column có mức do ngữ nghĩa thấp (ví dụ những file về giá cả của sản phẩm, hoặc thông tin mô tả sản
+Short info --> Database: Data theo dạng column có mức do ngữ nghĩa thấp 
+(ví dụ những file về giá cả của sản phẩm, hoặc thông tin mô tả sản
 phẩm ngắn gọn)
 
 	- Lưu y:

@@ -43,6 +43,7 @@ async def csv_process(file_path, dt_base):
     start_time = datetime.now()
     
     name_dtb = os.path.splitext(os.path.basename(file_path))[0]
+    name_dtb1 = dt_base + "_shortinfo"
     df = pd.read_csv(file_path, nrows=0, delimiter=',', encoding="utf-8-sig")
     columns = df.columns.tolist()[0].split(",") 
     # Loader
@@ -59,20 +60,20 @@ async def csv_process(file_path, dt_base):
         user=PG_USER, password=PG_PASSWORD
     )
     #Nếu bảng tồn tại thì xóa
-    await conn.execute(f'DROP TABLE IF EXISTS "{name_dtb}";')
+    await conn.execute(f'DROP TABLE IF EXISTS "{name_dtb1}";')
 
     columns_def = ", ".join([f'"{col}" text' for col in columns])
-    await conn.execute(f'CREATE TABLE IF NOT EXISTS "{name_dtb}" ({columns_def});')
+    await conn.execute(f'CREATE TABLE IF NOT EXISTS "{name_dtb1}" ({columns_def});')
     Contents = [doc.page_content for doc in docs]
     for item in Contents:
         _, value_part = item.split(":", 1)
         values = [v.strip() for v in value_part.split(",")]
         placeholders = ','.join([f'${i+1}' for i in range(len(columns))])
         columns_sql = ', '.join(f'"{col}"' for col in columns)
-        insert_sql = f'INSERT INTO "{name_dtb}" ({columns_sql}) VALUES ({placeholders})'
+        insert_sql = f'INSERT INTO "{name_dtb1}" ({columns_sql}) VALUES ({placeholders})'
         await conn.execute(insert_sql, *values)
     await conn.close()
-    print(f"✅ Created table {name_dtb} and inserted {len(docs)} rows.")
+    print(f"✅ Created table {name_dtb1} and inserted {len(docs)} rows.")
     end_time = datetime.now()
     duration = end_time - start_time
     print("Thời gian xử lý:", duration.total_seconds())
@@ -81,25 +82,42 @@ async def csv_process(file_path, dt_base):
 
 
 async def xlsx_process(file_path, dt_base):
-    ''' Xử lý file xlsx: parse dữ liệu (columns + data) từ tất cả sheets
-    Mỗi sheet sẽ thành một bảng riêng biệt'''
+    ''' Xử lý file xlsx: parse dữ liệu (columns + data) từ sheet đầu tiên'''
     start_time = datetime.now()
-
-    base_name = os.path.splitext(os.path.basename(file_path))[0]
-    # Đọc tất cả sheet names
-    xls = pd.ExcelFile(file_path)
-    sheet_names = xls.sheet_names
+    #base_name = os.path.splitext(os.path.basename(file_path))[0]
+    df = pd.read_excel(file_path, sheet_name=0)  # sheet_name=0 để lấy sheet đầu tiên
+    table_name = f"{dt_base}_shortinfo"
     conn = await asyncpg.connect(host=PG_HOST, database=dt_base, user=PG_USER, password=PG_PASSWORD)
+    columns = df.columns.tolist()
+    columns_def = ", ".join([f'"{col}" text' for col in columns])
+    await conn.execute(f'DROP TABLE IF EXISTS "{table_name}";')
+    await conn.execute(f'CREATE TABLE "{table_name}" ({columns_def});')
+    # Insert data
+    for _, row in df.iterrows():
+        values = tuple(None if pd.isna(row[col]) else str(row[col]) for col in columns)
+        placeholders = ','.join([f'${i+1}' for i in range(len(columns))])
+        columns_sql = ', '.join(f'"{col}"' for col in columns)
+        insert_sql = f'INSERT INTO "{table_name}" ({columns_sql}) VALUES ({placeholders})'
+        await conn.execute(insert_sql, *values)
+    
+    print(f"✅ Created table {table_name} and inserted {len(df)} rows from first sheet.")
+    await conn.close()
+    end_time = datetime.now()
+    duration = end_time - start_time
+    print("Thời gian xử lý:", duration.total_seconds())
+
+    # Xử lý nhiều sheets nhưng ...
+    '''
     # Xử lý từng sheet
     for sheet_name in sheet_names:
         # Tên bảng = tên file + tên sheet
-        table_name = f"{base_name}_{sheet_name}"
+        table_name = f"{dt_base}_shortinfo"
         df = pd.read_excel(file_path, sheet_name=sheet_name)
         
         columns = df.columns.tolist()
         columns_def = ", ".join([f'"{col}" text' for col in columns])
         
-        await conn.execute(f'DROP TABLE IF EXISTS "{table_name}";')
+        #await conn.execute(f'DROP TABLE IF EXISTS "{table_name}";')
         await conn.execute(f'CREATE TABLE "{table_name}" ({columns_def});')
         # Insert data
         for _, row in df.iterrows():
@@ -109,10 +127,7 @@ async def xlsx_process(file_path, dt_base):
             insert_sql = f'INSERT INTO "{table_name}" ({columns_sql}) VALUES ({placeholders})'
             await conn.execute(insert_sql, *values)
         print(f"✅ Created table {table_name} and inserted {len(df)} rows.")
-    await conn.close()
-    end_time = datetime.now()
-    duration = end_time - start_time
-    print("Thời gian xử lý:", duration.total_seconds())
+   ''' 
 
 async def img_process(file_path):
     """Xử lý ảnh đơn giản - chỉ đọc và hiển thị thông tin cơ bản"""

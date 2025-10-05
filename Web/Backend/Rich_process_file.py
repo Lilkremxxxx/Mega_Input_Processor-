@@ -64,8 +64,8 @@ async def xlsx_process_rich(file_path, dt_base):
     và embedding để lưu vào vector store"""
     start_time = datetime.now()
     
-    base_name = os.path.splitext(os.path.basename(file_path))[0]
-    embed_name = base_name + "_embeddings"
+    #base_name = os.path.splitext(os.path.basename(file_path))[0]
+    embed_name = dt_base + "rag"
     conn = await asyncpg.connect(host=PG_HOST, database=dt_base, user=PG_USER, password=PG_PASSWORD)
 
     await conn.execute(f'DROP TABLE IF EXISTS "{embed_name}";')
@@ -113,8 +113,8 @@ async def docx_text_pdf_process(file_path, dt_base):
     vào bảng bao gồm cả text gốc và vector  '''
     start_time = datetime.now()
 
-    base_name = os.path.splitext(os.path.basename(file_path))[0]
-    embed_name = base_name + "_embeddings"
+    #base_name = os.path.splitext(os.path.basename(file_path))[0]
+    embed_name = dt_base + "rag"
     conn = await asyncpg.connect(host=PG_HOST, database=dt_base, user=PG_USER, password=PG_PASSWORD)
 
     print(f"Đang tạo bảng {embed_name}")
