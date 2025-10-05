@@ -49,6 +49,8 @@ async def create_database(data: CreateDbRequest):
             host=PG_HOST, database=dbname,
             user=PG_USER, password=PG_PASSWORD
         )
+        await conn1.execute('CREATE EXTENSION IF NOT EXISTS vector;')
+
         await conn1.close()
 
         # Cập nhật cột dtbase cho user

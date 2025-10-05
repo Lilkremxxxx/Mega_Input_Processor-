@@ -60,6 +60,7 @@ async def csv_process(file_path, dt_base):
         user=PG_USER, password=PG_PASSWORD
     )
     #Nếu bảng tồn tại thì xóa
+    await conn.execute("CREATE EXTENSION IF NOT EXISTS vector;")
     await conn.execute(f'DROP TABLE IF EXISTS "{name_dtb1}";')
 
     columns_def = ", ".join([f'"{col}" text' for col in columns])
@@ -90,6 +91,7 @@ async def xlsx_process(file_path, dt_base):
     conn = await asyncpg.connect(host=PG_HOST, database=dt_base, user=PG_USER, password=PG_PASSWORD)
     columns = df.columns.tolist()
     columns_def = ", ".join([f'"{col}" text' for col in columns])
+    await conn.execute("CREATE EXTENSION IF NOT EXISTS vector;")
     await conn.execute(f'DROP TABLE IF EXISTS "{table_name}";')
     await conn.execute(f'CREATE TABLE "{table_name}" ({columns_def});')
     # Insert data
