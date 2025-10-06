@@ -11,20 +11,14 @@ from langchain_ollama import OllamaEmbeddings
 from langchain_core.vectorstores import InMemoryVectorStore
 from langchain_community.document_loaders import CSVLoader, PyPDFLoader, Docx2txtLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_text_splitters import CharacterTextSplitter
 from langchain_unstructured import UnstructuredLoader
 
 # Tắt các log không cần thiết
 logging.getLogger("httpx").setLevel(logging.WARNING)
 logging.getLogger("httpcore").setLevel(logging.WARNING)
-
-
-
-# Tắt các log không cần thiết
 logging.getLogger("httpx").setLevel(logging.WARNING)
 logging.getLogger("httpcore").setLevel(logging.WARNING)
-
-
-
 
 load_dotenv()
 PG_HOST=os.getenv("PG_HOST")
@@ -65,7 +59,7 @@ async def xlsx_process_rich(file_path, dt_base):
     start_time = datetime.now()
     
     #base_name = os.path.splitext(os.path.basename(file_path))[0]
-    embed_name = dt_base + "rag"
+    embed_name = dt_base + "rag_qa"
     conn = await asyncpg.connect(host=PG_HOST, database=dt_base, user=PG_USER, password=PG_PASSWORD)
     await conn.execute('CREATE EXTENSION IF NOT EXISTS vector;')
     await conn.execute(f'DROP TABLE IF EXISTS "{embed_name}";')
@@ -114,7 +108,7 @@ async def docx_text_pdf_process(file_path, dt_base):
     start_time = datetime.now()
 
     #base_name = os.path.splitext(os.path.basename(file_path))[0]
-    embed_name = dt_base + "rag"
+    embed_name = dt_base + "rag_info"
     conn = await asyncpg.connect(host=PG_HOST, database=dt_base, user=PG_USER, password=PG_PASSWORD)
     await conn.execute('CREATE EXTENSION IF NOT EXISTS vector;')
     print(f"Đang tạo bảng {embed_name}")
@@ -129,13 +123,12 @@ async def docx_text_pdf_process(file_path, dt_base):
     loader = UnstructuredLoader(
     file_path=file_path, mode="elements", strategy="fast",
 )
-    
     print(f"Đang tách và embedding")
     docs = loader.load()
     embedding_list = []    
-    text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=900,
-        chunk_overlap=120,
+    text_splitter = CharacterTextSplitter(
+        chunk_size=500,
+        chunk_overlap=150,
     )
     texts = text_splitter.split_documents(docs)
     Original = []

@@ -43,34 +43,3 @@ async def read_root():
         return HTMLResponse(content="<h1>Upload page not found</h1>", status_code=404)
 
 
-@app.post("/upload")
-async def upload(files: List[UploadFile] = File(...)):
-    saved_files = []
-
-    for file in files:
-        try:
-            # lấy phần mở rộng (vd: ".csv", ".jpg")
-            _, ext = os.path.splitext(file.filename)
-            ext = ext.lower().lstrip(".")
-
-            # tạo thư mục con theo định dạng
-            subdir = os.path.join(BASE_UPLOAD_DIR, ext)
-            os.makedirs(subdir, exist_ok=True)
-
-            # đường dẫn đầy đủ
-            file_path = os.path.join(subdir, file.filename)
-
-            # đọc file (async)
-            contents = await file.read()
-            with open(file_path, "wb") as f:
-                f.write(contents)
-
-            saved_files.append(file_path)
-
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Lỗi khi upload {file.filename}: {str(e)}")
-        finally:
-            await file.close()
-
-    return {"message": f"Successfully uploaded {len(saved_files)} files", "files": saved_files}
-

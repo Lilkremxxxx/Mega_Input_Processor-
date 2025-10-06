@@ -1,7 +1,7 @@
 import os
 import asyncpg
 import psycopg2
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 from pydantic import BaseModel
 from dotenv import load_dotenv
 
