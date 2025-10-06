@@ -119,7 +119,7 @@ async def docx_text_pdf_process(file_path, dt_base):
     await conn.execute('CREATE EXTENSION IF NOT EXISTS vector;')
     print(f"Đang tạo bảng {embed_name}")
     await conn.execute(f'DROP TABLE IF EXISTS "{embed_name}";')
-    await conn.execute(f'CREATE TABLE "{embed_name}" (id SERIAL PRIMARY KEY, Original_Text TEXT, vector_embedded TEXT);')
+    await conn.execute(f'CREATE TABLE "{embed_name}" (id SERIAL PRIMARY KEY, Original_Text TEXT, vector_embedded vector);')
 
     print(f"Đang đọc tài liệu")
     # Tắt thông báo console cho Ollama
