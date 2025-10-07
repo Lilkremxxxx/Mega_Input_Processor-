@@ -41,8 +41,6 @@ async def csv_process(file_path, dt_base):
     Sau đó insert vào database '''
 
     start_time = datetime.now()
-    
-    name_dtb = os.path.splitext(os.path.basename(file_path))[0]
     name_dtb1 = dt_base + "_shortinfo"
     df = pd.read_csv(file_path, nrows=0, delimiter=',', encoding="utf-8-sig")
     columns = df.columns.tolist()[0].split(",") 
@@ -56,7 +54,7 @@ async def csv_process(file_path, dt_base):
     async for doc in loader.alazy_load():
         docs.append(doc)
     conn = await asyncpg.connect(
-        host=PG_HOST, database=dt_base,
+        host=PG_HOST, database="Shortinfo_dtb",
         user=PG_USER, password=PG_PASSWORD
     )
     #Nếu bảng tồn tại thì xóa
@@ -88,7 +86,7 @@ async def xlsx_process(file_path, dt_base):
     #base_name = os.path.splitext(os.path.basename(file_path))[0]
     df = pd.read_excel(file_path, sheet_name=0)  # sheet_name=0 để lấy sheet đầu tiên
     table_name = f"{dt_base}_shortinfo"
-    conn = await asyncpg.connect(host=PG_HOST, database=dt_base, user=PG_USER, password=PG_PASSWORD)
+    conn = await asyncpg.connect(host=PG_HOST, database="Shortinfo_dtb", user=PG_USER, password=PG_PASSWORD)
     columns = df.columns.tolist()
     columns_def = ", ".join([f'"{col}" text' for col in columns])
     await conn.execute("CREATE EXTENSION IF NOT EXISTS vector;")

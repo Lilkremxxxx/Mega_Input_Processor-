@@ -50,7 +50,6 @@ async def process_uploaded_files(file_paths, dt_base):
             
         else:
             print(f"File {file_path} uploaded but no specific processing defined.")
-            # Có thể thêm xử lý chung cho text files, etc.
 
 
 async def xlsx_process_rich(file_path, dt_base):
@@ -60,12 +59,10 @@ async def xlsx_process_rich(file_path, dt_base):
     
     #base_name = os.path.splitext(os.path.basename(file_path))[0]
     embed_name = dt_base + "rag_qa"
-    conn = await asyncpg.connect(host=PG_HOST, database=dt_base, user=PG_USER, password=PG_PASSWORD)
+    conn = await asyncpg.connect(host=PG_HOST, database="Richinfo_dtb", user=PG_USER, password=PG_PASSWORD)
     await conn.execute('CREATE EXTENSION IF NOT EXISTS vector;')
     await conn.execute(f'DROP TABLE IF EXISTS "{embed_name}";')
     await conn.execute(f'CREATE TABLE "{embed_name}" (id SERIAL PRIMARY KEY, question TEXT, answer TEXT, note TEXT, vector_embedded vector);')
-
-    # Tắt thông báo console cho Ollama
     original_level = logging.getLogger().getEffectiveLevel()
     logging.getLogger().setLevel(logging.WARNING)
 
@@ -109,14 +106,13 @@ async def docx_text_pdf_process(file_path, dt_base):
 
     #base_name = os.path.splitext(os.path.basename(file_path))[0]
     embed_name = dt_base + "rag_info"
-    conn = await asyncpg.connect(host=PG_HOST, database=dt_base, user=PG_USER, password=PG_PASSWORD)
+    conn = await asyncpg.connect(host=PG_HOST, database="Richinfo_dtb", user=PG_USER, password=PG_PASSWORD)
     await conn.execute('CREATE EXTENSION IF NOT EXISTS vector;')
     print(f"Đang tạo bảng {embed_name}")
     await conn.execute(f'DROP TABLE IF EXISTS "{embed_name}";')
     await conn.execute(f'CREATE TABLE "{embed_name}" (id SERIAL PRIMARY KEY, Original_Text TEXT, vector_embedded vector);')
 
     print(f"Đang đọc tài liệu")
-    # Tắt thông báo console cho Ollama
     original_level = logging.getLogger().getEffectiveLevel()
     logging.getLogger().setLevel(logging.WARNING)
     
@@ -155,7 +151,5 @@ async def docx_text_pdf_process(file_path, dt_base):
     end_time = datetime.now()
     duration = end_time - start_time
     print("Thời gian xử lý:", duration.total_seconds())
-
-    # Khôi phục level log
     logging.getLogger().setLevel(original_level)
     await conn.close()
