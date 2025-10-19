@@ -30,18 +30,18 @@ document.addEventListener('DOMContentLoaded', function() {
     const createDatabaseBtn = document.getElementById('createDatabaseBtn');
     const deleteDatabaseBtn = document.getElementById('deleteDatabaseBtn');
     let username = localStorage.getItem('currentUser');
-    let dt_base = '';
+    let groupId = '';
     
     function updateDbButtons() {
         username = localStorage.getItem('currentUser');
-        // Lấy dt_base mới nhất từ localStorage
-        let latest_dt_base = localStorage.getItem('dt_base_' + username) || '';
-        dt_base = latest_dt_base;
-        localStorage.setItem('dt_base', dt_base);
+        // Lấy groupId mới nhất từ localStorage
+        let latest_groupId = localStorage.getItem('groupId_' + username) || '';
+        groupId = latest_groupId;
+        localStorage.setItem('groupId', groupId);
         
-        if (dt_base) {
+        if (groupId) {
             createDatabaseBtn.disabled = true;
-            createDatabaseBtn.innerHTML = `<i class="fas fa-check"></i> Đã tạo xong: ${dt_base}`;
+            createDatabaseBtn.innerHTML = `<i class="fas fa-check"></i> Đã tạo xong: ${groupId}`;
             
             // Hiển thị nút xóa
             deleteDatabaseBtn.style.display = '';
@@ -58,13 +58,13 @@ document.addEventListener('DOMContentLoaded', function() {
         // Thiết lập nút ban đầu
         function setupInitialButtons() {
             username = localStorage.getItem('currentUser');
-            let latest_dt_base = localStorage.getItem('dt_base_' + username) || '';
-            dt_base = latest_dt_base;
-            localStorage.setItem('dt_base', dt_base);
+            let latest_groupId = localStorage.getItem('groupId_' + username) || '';
+            groupId = latest_groupId;
+            localStorage.setItem('groupId', groupId);
             
-            if (dt_base) {
+            if (groupId) {
                 createDatabaseBtn.disabled = true;
-                createDatabaseBtn.innerHTML = `<i class="fas fa-check"></i> Đã tạo database: ${dt_base}`;
+                createDatabaseBtn.innerHTML = `<i class="fas fa-check"></i> Đã tạo database: ${groupId}`;
                 
                 // Hiển thị và kích hoạt nút xóa
                 deleteDatabaseBtn.style.display = '';
@@ -111,8 +111,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     const data2 = await res2.json();
                     
                     if (res2.ok && data2.success) {
-                        localStorage.setItem('dt_base_' + username, data2.database || '');
-                        localStorage.setItem('dt_base', data2.database || '');
+                        localStorage.setItem('groupId_' + username, data2.database || '');
+                        localStorage.setItem('groupId', data2.database || '');
                         
                         // Đổi trạng thái nút tạo database
                         createDatabaseBtn.disabled = true;
@@ -139,11 +139,11 @@ document.addEventListener('DOMContentLoaded', function() {
         // Event handler cho nút xóa database
         deleteDatabaseBtn.onclick = async function() {
             username = localStorage.getItem('currentUser');
-            // Lấy lại dt_base mới nhất trước khi xóa
-            let latest_dt_base = localStorage.getItem('dt_base_' + username) || '';
-            dt_base = latest_dt_base;
+            // Lấy lại groupId mới nhất trước khi xóa
+            let latest_groupId = localStorage.getItem('groupId_' + username) || '';
+            groupId = latest_groupId;
             
-            if (!username || !dt_base || deleteDatabaseBtn.disabled) {
+            if (!username || !groupId || deleteDatabaseBtn.disabled) {
                 return;
             }
             deleteDatabaseBtn.disabled = true;
@@ -167,13 +167,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     const data2 = await res2.json();
                     
                     if (res2.ok && data2.success) {
-                        localStorage.setItem('dt_base_' + username, data2.database || '');
-                        localStorage.setItem('dt_base', data2.database || '');
+                        localStorage.setItem('groupId_' + username, data2.database || '');
+                        localStorage.setItem('groupId', data2.database || '');
                     }
                     
                     // Sau khi xóa thành công, cập nhật localStorage
-                    localStorage.setItem('dt_base_' + username, '');
-                    localStorage.setItem('dt_base', '');
+                    localStorage.setItem('groupId_' + username, '');
+                    localStorage.setItem('groupId', '');
                     
                     // Cập nhật giao diện
                     updateDbButtons();
@@ -215,8 +215,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (res.ok && data.success) {
                     localStorage.setItem('currentUser', username);
                     // Khi đăng nhập, lấy đúng database của user này từ backend
-                    localStorage.setItem('dt_base_' + username, data.database || '');
-                    localStorage.setItem('dt_base', data.database || '');
+                    localStorage.setItem('groupId_' + username, data.database || '');
+                    localStorage.setItem('groupId', data.database || '');
                     
                     // Reset trạng thái đang xử lý khi đăng nhập
                     isProcessingDelete = false;
@@ -455,10 +455,10 @@ async function uploadFiles(files, endpoint) {
     resultSection.innerHTML = '';
     const formData = new FormData();
     files.forEach(file => formData.append('files', file));
-    // Thêm biến dt_base vào formData
-    const dt_base = localStorage.getItem('dt_base');
-    if (dt_base) {
-        formData.append('dt_base', dt_base);
+    // Thêm biến groupId vào formData
+    const groupId = localStorage.getItem('groupId');
+    if (groupId) {
+        formData.append('groupId', groupId);
     }
     // Sử dụng XMLHttpRequest để lấy tiến trình upload
     const xhr = new XMLHttpRequest();

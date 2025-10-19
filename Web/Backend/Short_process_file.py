@@ -19,7 +19,7 @@ PG_USER=os.getenv("PG_USER")
 PG_PASSWORD=os.getenv("PG_PASSWORD")
 
 
-async def process_uploaded_files(file_paths, dt_base):
+async def process_uploaded_files(file_paths, groupId):
     """
     Hàm xử lý các file đã upload.
     Tham số: list các đường dẫn file.
@@ -27,21 +27,21 @@ async def process_uploaded_files(file_paths, dt_base):
     for file_path in file_paths:
         ext = os.path.splitext(file_path)[1].lower()
         if ext == ".csv":
-            await csv_process(file_path, dt_base)
+            await csv_process(file_path, groupId)
         elif ext == '.xlsx':
-            await xlsx_process(file_path, dt_base)
+            await xlsx_process(file_path, groupId)
         elif ext in [".jpg", ".png"]:
             print('Hiện tại web chưa hỗ trợ định dạng ảnh')
         else:
             print(f"File {file_path} uploaded but no specific processing defined.")
            
 
-async def csv_process(file_path, dt_base):
+async def csv_process(file_path, groupId):
     ''' Xử lý file csv: parse dữ liệu (columns + data)
     Sau đó insert vào database '''
 
     start_time = datetime.now()
-    name_dtb1 = dt_base + "_shortinfo"
+    name_dtb1 = groupId + "_shortinfo"
     df = pd.read_csv(file_path, nrows=0, delimiter=',', encoding="utf-8-sig")
     columns = df.columns.tolist()[0].split(",") 
     # Loader
@@ -54,7 +54,7 @@ async def csv_process(file_path, dt_base):
     async for doc in loader.alazy_load():
         docs.append(doc)
     conn = await asyncpg.connect(
-        host=PG_HOST, database="Shortinfo_dtb",
+        host=PG_HOST, database=groupId,
         user=PG_USER, password=PG_PASSWORD
     )
     #Nếu bảng tồn tại thì xóa
@@ -80,13 +80,13 @@ async def csv_process(file_path, dt_base):
 
 
 
-async def xlsx_process(file_path, dt_base):
+async def xlsx_process(file_path, groupId):
     ''' Xử lý file xlsx: parse dữ liệu (columns + data) từ sheet đầu tiên'''
     start_time = datetime.now()
     #base_name = os.path.splitext(os.path.basename(file_path))[0]
     df = pd.read_excel(file_path, sheet_name=0)  # sheet_name=0 để lấy sheet đầu tiên
-    table_name = f"{dt_base}_shortinfo"
-    conn = await asyncpg.connect(host=PG_HOST, database="Shortinfo_dtb", user=PG_USER, password=PG_PASSWORD)
+    table_name = f"{groupId}_shortinfo"
+    conn = await asyncpg.connect(host=PG_HOST, database=groupId, user=PG_USER, password=PG_PASSWORD)
     columns = df.columns.tolist()
     columns_def = ", ".join([f'"{col}" text' for col in columns])
     await conn.execute("CREATE EXTENSION IF NOT EXISTS vector;")

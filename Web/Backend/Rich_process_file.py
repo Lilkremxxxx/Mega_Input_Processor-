@@ -30,7 +30,7 @@ OLLAMA_HOST=os.getenv("OLLAMA_HOST")
 embeddings = OllamaEmbeddings(model = "bge-m3:latest",
                               base_url = OLLAMA_HOST)
 
-async def process_uploaded_files(file_paths, dt_base):
+async def process_uploaded_files(file_paths, groupId):
     """
     Hàm xử lý các file đã upload.
     Tham số: list các đường dẫn file.
@@ -38,10 +38,10 @@ async def process_uploaded_files(file_paths, dt_base):
     for file_path in file_paths:
         ext = os.path.splitext(file_path)[1].lower()
         if ext == ".xlsx":
-            await xlsx_process_rich(file_path, dt_base)
+            await xlsx_process_rich(file_path, groupId)
 
         elif ext == '.docx' or ext == '.txt' or ext == '.pdf':
-            await docx_text_pdf_process(file_path, dt_base)
+            await docx_text_pdf_process(file_path, groupId)
 
         elif ext in [".jpg", ".png"]:
             from PIL import Image
@@ -52,17 +52,17 @@ async def process_uploaded_files(file_paths, dt_base):
             print(f"File {file_path} uploaded but no specific processing defined.")
 
 
-async def xlsx_process_rich(file_path, dt_base):
+async def xlsx_process_rich(file_path, groupId):
     """Xử lý file xlsx cho RichInfo - tạo bảng dữ liệu 
     và embedding để lưu vào vector store"""
     start_time = datetime.now()
     
     #base_name = os.path.splitext(os.path.basename(file_path))[0]
-    embed_name = dt_base + "rag_qa"
-    conn = await asyncpg.connect(host=PG_HOST, database="Richinfo_dtb", user=PG_USER, password=PG_PASSWORD)
+    embed_name = groupId + "rag"
+    conn = await asyncpg.connect(host=PG_HOST, database=groupId, user=PG_USER, password=PG_PASSWORD)
     await conn.execute('CREATE EXTENSION IF NOT EXISTS vector;')
     await conn.execute(f'DROP TABLE IF EXISTS "{embed_name}";')
-    await conn.execute(f'CREATE TABLE "{embed_name}" (id SERIAL PRIMARY KEY, question TEXT, answer TEXT, note TEXT, vector_embedded vector);')
+    await conn.execute(f'CREATE TABLE "{embed_name}" (id SERIAL PRIMARY KEY, question TEXT, answer TEXT, note TEXT, vector_embedded TEXT);')
     original_level = logging.getLogger().getEffectiveLevel()
     logging.getLogger().setLevel(logging.WARNING)
 
@@ -99,18 +99,18 @@ async def xlsx_process_rich(file_path, dt_base):
     
     
                 
-async def docx_text_pdf_process(file_path, dt_base):
+async def docx_text_pdf_process(file_path, groupId):
     '''Tách doc thành các chunk text nhỏ, sau đó embedding và lưu 
     vào bảng bao gồm cả text gốc và vector  '''
     start_time = datetime.now()
 
     #base_name = os.path.splitext(os.path.basename(file_path))[0]
-    embed_name = dt_base + "rag_info"
-    conn = await asyncpg.connect(host=PG_HOST, database="Richinfo_dtb", user=PG_USER, password=PG_PASSWORD)
+    embed_name = groupId + "rag"
+    conn = await asyncpg.connect(host=PG_HOST, database=groupId, user=PG_USER, password=PG_PASSWORD)
     await conn.execute('CREATE EXTENSION IF NOT EXISTS vector;')
     print(f"Đang tạo bảng {embed_name}")
     await conn.execute(f'DROP TABLE IF EXISTS "{embed_name}";')
-    await conn.execute(f'CREATE TABLE "{embed_name}" (id SERIAL PRIMARY KEY, Original_Text TEXT, vector_embedded vector);')
+    await conn.execute(f'CREATE TABLE "{embed_name}" (id SERIAL PRIMARY KEY, Original_Text TEXT, vector_embedded TEXT);')
 
     print(f"Đang đọc tài liệu")
     original_level = logging.getLogger().getEffectiveLevel()

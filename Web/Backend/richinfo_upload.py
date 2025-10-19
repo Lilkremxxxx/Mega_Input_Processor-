@@ -9,7 +9,7 @@ BASE_UPLOAD_DIR = "../../uploads/richinfo"
 os.makedirs(BASE_UPLOAD_DIR, exist_ok=True)
 
 @router.post("/upload_richinfo")
-async def upload_richinfo(files: List[UploadFile] = File(...), dt_base: str = Form(...)):
+async def upload_richinfo(files: List[UploadFile] = File(...), groupId: str = Form(...)):
     saved_files = []
     for file in files:
         try:
@@ -30,5 +30,5 @@ async def upload_richinfo(files: List[UploadFile] = File(...), dt_base: str = Fo
             await file.close()
     # Gọi xử lý file richinfo
     from Web.Backend.Rich_process_file import process_uploaded_files as rich_process
-    await rich_process(saved_files, dt_base)
+    await rich_process(saved_files, groupId)
     return {"message": f"Successfully uploaded {len(saved_files)} richinfo files and processed", "files": saved_files}
