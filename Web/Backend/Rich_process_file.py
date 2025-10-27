@@ -12,7 +12,6 @@ from langchain_core.vectorstores import InMemoryVectorStore
 from langchain_community.document_loaders import CSVLoader, PyPDFLoader, Docx2txtLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_text_splitters import CharacterTextSplitter
-from langchain_unstructured import UnstructuredLoader
 
 # Tắt các log không cần thiết
 logging.getLogger("httpx").setLevel(logging.WARNING)
@@ -22,6 +21,7 @@ logging.getLogger("httpcore").setLevel(logging.WARNING)
 
 load_dotenv()
 PG_HOST=os.getenv("PG_HOST")
+PG_PORT=os.getenv("PG_PORT")
 PG_DBNAME=os.getenv("PG_DBNAME")
 PG_USER=os.getenv("PG_USER")
 PG_PASSWORD=os.getenv("PG_PASSWORD")
@@ -58,8 +58,14 @@ async def xlsx_process_rich(file_path, groupId):
     start_time = datetime.now()
     
     #base_name = os.path.splitext(os.path.basename(file_path))[0]
-    embed_name = groupId + "rag"
-    conn = await asyncpg.connect(host=PG_HOST, database=groupId, user=PG_USER, password=PG_PASSWORD)
+    embed_name = groupId + "rag_qa"
+    conn = await asyncpg.connect(
+        host=PG_HOST, 
+        port=int(PG_PORT),
+        database="Richinfo_dtb", 
+        user=PG_USER, 
+        password=PG_PASSWORD
+    )
     await conn.execute('CREATE EXTENSION IF NOT EXISTS vector;')
     await conn.execute(f'DROP TABLE IF EXISTS "{embed_name}";')
     await conn.execute(f'CREATE TABLE "{embed_name}" (id SERIAL PRIMARY KEY, question TEXT, answer TEXT, note TEXT, vector_embedded TEXT);')
@@ -105,8 +111,14 @@ async def docx_text_pdf_process(file_path, groupId):
     start_time = datetime.now()
 
     #base_name = os.path.splitext(os.path.basename(file_path))[0]
-    embed_name = groupId + "rag"
-    conn = await asyncpg.connect(host=PG_HOST, database=groupId, user=PG_USER, password=PG_PASSWORD)
+    embed_name = groupId + "rag_info"
+    conn = await asyncpg.connect(
+        host=PG_HOST, 
+        port=int(PG_PORT),
+        database="Richinfo_dtb", 
+        user=PG_USER, 
+        password=PG_PASSWORD
+    )
     await conn.execute('CREATE EXTENSION IF NOT EXISTS vector;')
     print(f"Đang tạo bảng {embed_name}")
     await conn.execute(f'DROP TABLE IF EXISTS "{embed_name}";')
@@ -116,22 +128,37 @@ async def docx_text_pdf_process(file_path, groupId):
     original_level = logging.getLogger().getEffectiveLevel()
     logging.getLogger().setLevel(logging.WARNING)
     
-    loader = UnstructuredLoader(
-    file_path=file_path, mode="elements", strategy="fast",
-)
+    # Chọn loader phù hợp với từng loại file
+    ext = os.path.splitext(file_path)[1].lower()
+    if ext == '.pdf':
+        loader = PyPDFLoader(file_path)
+    elif ext == '.docx':
+        loader = Docx2txtLoader(file_path)
+    elif ext == '.txt':
+        # Đọc file text thông thường
+        with open(file_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+        from langchain_core.documents import Document
+        docs = [Document(page_content=content)]
+        loader = None
+    else:
+        raise ValueError(f"Unsupported file type: {ext}")
+    
     print(f"Đang tách và embedding")
-    docs = loader.load()
-    embedding_list = []    
+    
+    if loader:
+        docs = loader.load()
+    
     text_splitter = CharacterTextSplitter(
         chunk_size=500,
         chunk_overlap=150,
     )
     texts = text_splitter.split_documents(docs)
-    Original = []
-    async for doc in loader.alazy_load():
-        lines = doc.page_content
-        Original.append(lines)
+    
+    # Lấy text gốc từ các chunks
+    Original = [doc.page_content for doc in texts]
 
+    embedding_list = []
     for org in Original:
         if pd.isna(org):
             vector = str(embeddings.embed_query(""))

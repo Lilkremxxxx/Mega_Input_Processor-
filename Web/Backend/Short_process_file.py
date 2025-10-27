@@ -3,7 +3,6 @@ import asyncio
 import pandas as pd
 from langchain_community.document_loaders import CSVLoader
 from langchain_community.document_loaders.image import UnstructuredImageLoader
-from langchain_unstructured import UnstructuredLoader
 from dotenv import load_dotenv
 import asyncpg
 import openpyxl
@@ -14,6 +13,7 @@ import time
 
 load_dotenv()
 PG_HOST=os.getenv("PG_HOST")
+PG_PORT=os.getenv("PG_PORT")
 PG_DBNAME=os.getenv("PG_DBNAME")
 PG_USER=os.getenv("PG_USER")
 PG_PASSWORD=os.getenv("PG_PASSWORD")
@@ -54,8 +54,11 @@ async def csv_process(file_path, groupId):
     async for doc in loader.alazy_load():
         docs.append(doc)
     conn = await asyncpg.connect(
-        host=PG_HOST, database=groupId,
-        user=PG_USER, password=PG_PASSWORD
+        host=PG_HOST, 
+        port=int(PG_PORT),
+        database="Shortinfo_dtb",
+        user=PG_USER, 
+        password=PG_PASSWORD
     )
     #Nếu bảng tồn tại thì xóa
     await conn.execute("CREATE EXTENSION IF NOT EXISTS vector;")
@@ -86,7 +89,13 @@ async def xlsx_process(file_path, groupId):
     #base_name = os.path.splitext(os.path.basename(file_path))[0]
     df = pd.read_excel(file_path, sheet_name=0)  # sheet_name=0 để lấy sheet đầu tiên
     table_name = f"{groupId}_shortinfo"
-    conn = await asyncpg.connect(host=PG_HOST, database=groupId, user=PG_USER, password=PG_PASSWORD)
+    conn = await asyncpg.connect(
+        host=PG_HOST, 
+        port=int(PG_PORT),
+        database="Shortinfo_dtb", 
+        user=PG_USER, 
+        password=PG_PASSWORD
+    )
     columns = df.columns.tolist()
     columns_def = ", ".join([f'"{col}" text' for col in columns])
     await conn.execute("CREATE EXTENSION IF NOT EXISTS vector;")

@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 load_dotenv()
 router = APIRouter()
 PG_HOST = os.getenv("PG_HOST")
+PG_PORT = os.getenv("PG_PORT")
 PG_USER = os.getenv("PG_USER")
 PG_PASSWORD = os.getenv("PG_PASSWORD")
 
@@ -22,7 +23,13 @@ async def create_database(data: CreateDbRequest):
     dbname = username
     try:
         # Kiểm tra user đã có database chưa
-        conn_check = await asyncpg.connect(host=PG_HOST, user=PG_USER, password=PG_PASSWORD, database="postgres")
+        conn_check = await asyncpg.connect(
+            host=PG_HOST, 
+            port=int(PG_PORT),
+            user=PG_USER, 
+            password=PG_PASSWORD, 
+            database="ai_db"
+        )
         
         user = await conn_check.fetchrow("SELECT * FROM users WHERE username=$1", username)
         if not user:
@@ -35,8 +42,11 @@ async def create_database(data: CreateDbRequest):
 
         # Tạo database mới
         conn = psycopg2.connect(
-            host=PG_HOST, dbname="postgres",
-            user=PG_USER, password=PG_PASSWORD
+            host=PG_HOST, 
+            port=int(PG_PORT),
+            dbname="ai_db",
+            user=PG_USER, 
+            password=PG_PASSWORD
         )
         conn.autocommit = True
         cur = conn.cursor()
@@ -46,15 +56,24 @@ async def create_database(data: CreateDbRequest):
 
         # Kiểm tra kết nối database mới tạo
         conn1 = await asyncpg.connect(
-            host=PG_HOST, database=dbname,
-            user=PG_USER, password=PG_PASSWORD
+            host=PG_HOST, 
+            port=int(PG_PORT),
+            database=dbname,
+            user=PG_USER, 
+            password=PG_PASSWORD
         )
         await conn1.execute('CREATE EXTENSION IF NOT EXISTS vector;')
 
         await conn1.close()
 
         # Cập nhật cột dtbase cho user
-        conn2 = await asyncpg.connect(host=PG_HOST, user=PG_USER, password=PG_PASSWORD, database="postgres")
+        conn2 = await asyncpg.connect(
+            host=PG_HOST, 
+            port=int(PG_PORT),
+            user=PG_USER, 
+            password=PG_PASSWORD, 
+            database="ai_db"
+        )
         await conn2.execute("UPDATE users SET database=$1 WHERE username=$2", dbname, username)
         await conn2.close()
 
@@ -72,8 +91,11 @@ async def delete_database(data: DeleteDbRequest):
     dbname = username
     try:
         conn = psycopg2.connect(
-            host=PG_HOST, dbname="postgres",
-            user=PG_USER, password=PG_PASSWORD
+            host=PG_HOST, 
+            port=int(PG_PORT),
+            dbname="ai_db",
+            user=PG_USER, 
+            password=PG_PASSWORD
         )
         conn.autocommit = True
         cur = conn.cursor()
@@ -82,7 +104,13 @@ async def delete_database(data: DeleteDbRequest):
         conn.close()
 
         # Cập nhật cột dtbase về trống cho user
-        conn2 = await asyncpg.connect(host=PG_HOST, user=PG_USER, password=PG_PASSWORD, database="postgres")
+        conn2 = await asyncpg.connect(
+            host=PG_HOST, 
+            port=int(PG_PORT),
+            user=PG_USER, 
+            password=PG_PASSWORD, 
+            database="ai_db"
+        )
         await conn2.execute("UPDATE users SET database='' WHERE username=$1", username)
         await conn2.close()
 
