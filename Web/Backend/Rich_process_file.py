@@ -68,7 +68,7 @@ async def xlsx_process_rich(file_path, groupId):
     )
     await conn.execute('CREATE EXTENSION IF NOT EXISTS vector;')
     await conn.execute(f'DROP TABLE IF EXISTS "{embed_name}";')
-    await conn.execute(f'CREATE TABLE "{embed_name}" (id SERIAL PRIMARY KEY, question TEXT, answer TEXT, note TEXT, vector_embedded TEXT);')
+    await conn.execute(f'CREATE TABLE "{embed_name}" (id SERIAL PRIMARY KEY, question TEXT, answer TEXT, note TEXT, vector_embedded VECTOR);')
     original_level = logging.getLogger().getEffectiveLevel()
     logging.getLogger().setLevel(logging.WARNING)
 
@@ -111,7 +111,7 @@ async def docx_text_pdf_process(file_path, groupId):
     start_time = datetime.now()
 
     #base_name = os.path.splitext(os.path.basename(file_path))[0]
-    embed_name = groupId + "rag_info"
+    embed_name = groupId + "rag_qa"
     conn = await asyncpg.connect(
         host=PG_HOST, 
         port=int(PG_PORT),
@@ -121,8 +121,9 @@ async def docx_text_pdf_process(file_path, groupId):
     )
     await conn.execute('CREATE EXTENSION IF NOT EXISTS vector;')
     print(f"Đang tạo bảng {embed_name}")
-    await conn.execute(f'DROP TABLE IF EXISTS "{embed_name}";')
-    await conn.execute(f'CREATE TABLE "{embed_name}" (id SERIAL PRIMARY KEY, Original_Text TEXT, vector_embedded TEXT);')
+    await conn.execute(f'CREATE TABLE IF NOT EXISTS "{embed_name}" (id SERIAL PRIMARY KEY, question TEXT, answer TEXT, note TEXT, vector_embedded VECTOR); ')
+    #await conn.execute(f'DROP TABLE IF EXISTS "{embed_name}";')
+    #await conn.execute(f'CREATE TABLE "{embed_name}" (id SERIAL PRIMARY KEY, Original_Text TEXT, vector_embedded VECTOR);')
 
     print(f"Đang đọc tài liệu")
     original_level = logging.getLogger().getEffectiveLevel()
@@ -171,8 +172,8 @@ async def docx_text_pdf_process(file_path, groupId):
         text_embedded = embedding_list[i]
         text = str(Original[i]) if not pd.isna(Original[i]) else ""
 
-        await conn.execute(f"INSERT INTO \"{embed_name}\" (Original_Text, vector_embedded) VALUES ($1, $2)", 
-                    text, text_embedded)
+        await conn.execute(f"INSERT INTO \"{embed_name}\" (question, answer, note, vector_embedded) VALUES ($1, $2, $3, $4)", 
+                    text, text,text, text_embedded)
     print(f"✅ Created table {embed_name} and embedded {len(Original)} rows.")
 
     end_time = datetime.now()
