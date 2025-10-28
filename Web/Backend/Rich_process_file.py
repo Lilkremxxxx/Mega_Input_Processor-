@@ -173,7 +173,7 @@ async def docx_text_pdf_process(file_path, groupId):
         text = str(Original[i]) if not pd.isna(Original[i]) else ""
 
         await conn.execute(f"INSERT INTO \"{embed_name}\" (question, answer, note, vector_embedded) VALUES ($1, $2, $3, $4)", 
-                    text, a,a, text_embedded)
+                    text, text,a, text_embedded)
     print(f"✅ Created table {embed_name} and embedded {len(Original)} rows.")
 
     end_time = datetime.now()

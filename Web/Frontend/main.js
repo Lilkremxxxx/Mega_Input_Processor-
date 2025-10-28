@@ -270,6 +270,18 @@ document.addEventListener('DOMContentLoaded', function() {
     ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
         document.addEventListener(eventName, preventDefaults, false);
     });
+
+    // Delete table buttons
+    const deleteShortinfoTableBtn = document.getElementById('deleteShortinfoTableBtn');
+    const deleteRichinfoTableBtn = document.getElementById('deleteRichinfoTableBtn');
+
+    if (deleteShortinfoTableBtn) {
+        deleteShortinfoTableBtn.addEventListener('click', handleDeleteShortinfoTable);
+    }
+
+    if (deleteRichinfoTableBtn) {
+        deleteRichinfoTableBtn.addEventListener('click', handleDeleteRichinfoTable);
+    }
 });
 
 function preventDefaults(e) {
@@ -501,4 +513,124 @@ async function uploadFiles(files, endpoint) {
         }, 2000);
     };
     xhr.send(formData);
+}
+
+// Hàm xóa table ShortInfo
+async function handleDeleteShortinfoTable() {
+    console.log('handleDeleteShortinfoTable called');
+    const groupId = localStorage.getItem('groupId');
+    console.log('groupId:', groupId);
+    
+    if (!groupId) {
+        alert('Vui lòng đăng nhập và tạo database trước!');
+        return;
+    }
+
+    if (!confirm('Bạn có chắc chắn muốn xóa toàn bộ table ShortInfo? Hành động này không thể hoàn tác!')) {
+        return;
+    }
+
+    const deleteBtn = document.getElementById('deleteShortinfoTableBtn');
+    deleteBtn.disabled = true;
+    deleteBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang xóa...';
+
+    try {
+        console.log('Calling API delete_tb_shortinfo with groupId:', groupId);
+        const res = await fetch(API_BASE_URL + '/delete_tb_shortinfo', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ groupId })
+        });
+
+        const data = await res.json();
+        console.log('Response:', data);
+
+        if (res.ok && data.success) {
+            // Hiển thị thông báo thành công
+            const notifyDiv = document.createElement('div');
+            notifyDiv.style.background = '#4BB543';
+            notifyDiv.style.color = 'white';
+            notifyDiv.style.padding = '16px';
+            notifyDiv.style.borderRadius = '8px';
+            notifyDiv.style.margin = '24px auto';
+            notifyDiv.style.textAlign = 'center';
+            notifyDiv.style.maxWidth = '500px';
+            notifyDiv.style.fontSize = '1.1em';
+            notifyDiv.textContent = data.message || 'Đã xóa table ShortInfo thành công!';
+            resultSection.innerHTML = '';
+            resultSection.appendChild(notifyDiv);
+
+            setTimeout(() => {
+                resultSection.innerHTML = '';
+            }, 3000);
+        } else {
+            alert(data.detail || 'Xóa table thất bại!');
+        }
+    } catch (err) {
+        console.error('Lỗi khi xóa table:', err);
+        alert('Lỗi kết nối server: ' + err.message);
+    } finally {
+        deleteBtn.disabled = false;
+        deleteBtn.innerHTML = '<i class="fas fa-trash-alt"></i> Xóa Table ShortInfo';
+    }
+}
+
+// Hàm xóa table RichInfo
+async function handleDeleteRichinfoTable() {
+    console.log('handleDeleteRichinfoTable called');
+    const groupId = localStorage.getItem('groupId');
+    console.log('groupId:', groupId);
+    
+    if (!groupId) {
+        alert('Vui lòng đăng nhập và tạo database trước!');
+        return;
+    }
+
+    if (!confirm('Bạn có chắc chắn muốn xóa toàn bộ table RichInfo? Hành động này không thể hoàn tác!')) {
+        return;
+    }
+
+    const deleteBtn = document.getElementById('deleteRichinfoTableBtn');
+    deleteBtn.disabled = true;
+    deleteBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang xóa...';
+
+    try {
+        console.log('Calling API delete_tb_richinfo with groupId:', groupId);
+        const res = await fetch(API_BASE_URL + '/delete_tb_richinfo', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ groupId })
+        });
+
+        const data = await res.json();
+        console.log('Response:', data);
+
+        if (res.ok && data.success) {
+            // Hiển thị thông báo thành công
+            const notifyDiv = document.createElement('div');
+            notifyDiv.style.background = '#4BB543';
+            notifyDiv.style.color = 'white';
+            notifyDiv.style.padding = '16px';
+            notifyDiv.style.borderRadius = '8px';
+            notifyDiv.style.margin = '24px auto';
+            notifyDiv.style.textAlign = 'center';
+            notifyDiv.style.maxWidth = '500px';
+            notifyDiv.style.fontSize = '1.1em';
+            notifyDiv.textContent = data.message || 'Đã xóa table RichInfo thành công!';
+            resultSection.innerHTML = '';
+            resultSection.appendChild(notifyDiv);
+
+            setTimeout(() => {
+                resultSection.innerHTML = '';
+            }, 3000);
+        } else {
+            alert(data.detail || 'Xóa table thất bại!');
+        }
+    } catch (err) {
+        console.error('Lỗi khi xóa table:', err);
+        alert('Lỗi kết nối server: ' + err.message);
+    } finally {
+        deleteBtn.disabled = false;
+        deleteBtn.innerHTML = '<i class="fas fa-trash-alt"></i> Xóa Table RichInfo';
+    }
 }
