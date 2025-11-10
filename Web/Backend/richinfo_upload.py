@@ -21,9 +21,10 @@ class DeleteTableRequest(BaseModel):
 @router.post("/upload_richinfo")
 async def upload_richinfo(files: List[UploadFile] = File(...), groupId: str = Form(...)):
     saved_files = []
+    file_info = []  # Store both file_path and filename
     for file in files:
         try:
-            _, ext = os.path.splitext(file.filename)
+            filename, ext = os.path.splitext(file.filename)
             ext = ext.lower().lstrip(".")
             if ext not in ["csv", "xlsx", "docx", "txt", "pdf", "jpg", "png"]:
                 raise HTTPException(status_code=400, detail=f"File {file.filename} không đúng định dạng richinfo!")
@@ -34,13 +35,14 @@ async def upload_richinfo(files: List[UploadFile] = File(...), groupId: str = Fo
             with open(file_path, "wb") as f:
                 f.write(contents)
             saved_files.append(file_path)
+            file_info.append({"path": file_path, "name": filename})
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Lỗi khi upload {file.filename}: {str(e)}")
         finally:
             await file.close()
     # Gọi xử lý file richinfo
     from Web.Backend.Rich_process_file import process_uploaded_files as rich_process
-    await rich_process(saved_files, groupId)
+    await rich_process(file_info, groupId)
     return {"message": f"Successfully uploaded {len(saved_files)} richinfo files and processed", "files": saved_files}
 
 @router.post("/delete_tb_richinfo")

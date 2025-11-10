@@ -30,18 +30,20 @@ OLLAMA_HOST=os.getenv("OLLAMA_HOST")
 embeddings = OllamaEmbeddings(model = "bge-m3:latest",
                               base_url = OLLAMA_HOST)
 
-async def process_uploaded_files(file_paths, groupId):
+async def process_uploaded_files(file_info_list, groupId):
     """
     Hàm xử lý các file đã upload.
-    Tham số: list các đường dẫn file.
+    Tham số: list các dict chứa {'path': file_path, 'name': filename}.
     """
-    for file_path in file_paths:
+    for file_info in file_info_list:
+        file_path = file_info['path']
+        filename = file_info['name']
         ext = os.path.splitext(file_path)[1].lower()
         if ext == ".xlsx":
-            await xlsx_process_rich(file_path, groupId)
+            await xlsx_process_rich(file_path, groupId, filename)
 
         elif ext == '.docx' or ext == '.txt' or ext == '.pdf':
-            await docx_text_pdf_process(file_path, groupId)
+            await docx_text_pdf_process(file_path, groupId, filename)
 
         elif ext in [".jpg", ".png"]:
             from PIL import Image
@@ -52,17 +54,16 @@ async def process_uploaded_files(file_paths, groupId):
             print(f"File {file_path} uploaded but no specific processing defined.")
 
 
-async def xlsx_process_rich(file_path, groupId):
+async def xlsx_process_rich(file_path, groupId, filename):
     """Xử lý file xlsx cho RichInfo - tạo bảng dữ liệu 
     và embedding để lưu vào vector store"""
     start_time = datetime.now()
     
-    #base_name = os.path.splitext(os.path.basename(file_path))[0]
-    embed_name = groupId + "rag_qa"
+    embed_name = filename + "_richinfo"
     conn = await asyncpg.connect(
         host=PG_HOST, 
         port=int(PG_PORT),
-        database="Richinfo_dtb", 
+        database="Documents", 
         user=PG_USER, 
         password=PG_PASSWORD
     )
@@ -93,6 +94,13 @@ async def xlsx_process_rich(file_path, groupId):
         note = str(notes[i]) if not pd.isna(notes[i]) else None
         await conn.execute(f"INSERT INTO \"{embed_name}\" (question, answer, note, vector_embedded) VALUES ($1, $2, $3, $4)", 
                     question, answer, note, question_embedded)
+    
+    # Insert vào bảng Manager
+    await conn.execute(
+        'INSERT INTO "Manager" ("groupId", "fileName", "documentType", "tableName") VALUES ($1, $2, $3, $4)',
+        groupId, filename, 'richinfo', embed_name
+    )
+    
     print(f"✅ Created table {embed_name} and embedded {len(questions)} rows.")
 
     end_time = datetime.now()
@@ -104,17 +112,16 @@ async def xlsx_process_rich(file_path, groupId):
     
     
                 
-async def docx_text_pdf_process(file_path, groupId):
+async def docx_text_pdf_process(file_path, groupId, filename):
     '''Tách doc thành các chunk text nhỏ, sau đó embedding và lưu 
     vào bảng bao gồm cả text gốc và vector  '''
     start_time = datetime.now()
 
-    #base_name = os.path.splitext(os.path.basename(file_path))[0]
-    embed_name = groupId + "rag_qa"
+    embed_name = filename + "_richinfo"
     conn = await asyncpg.connect(
         host=PG_HOST, 
         port=int(PG_PORT),
-        database="Richinfo_dtb", 
+        database="Documents", 
         user=PG_USER, 
         password=PG_PASSWORD
     )
@@ -174,6 +181,13 @@ async def docx_text_pdf_process(file_path, groupId):
 
         await conn.execute(f"INSERT INTO \"{embed_name}\" (question, answer, note, vector_embedded) VALUES ($1, $2, $3, $4)", 
                     text, text,a, text_embedded)
+    
+    # Insert vào bảng Manager
+    await conn.execute(
+        'INSERT INTO "Manager" ("groupId", "fileName", "documentType", "tableName") VALUES ($1, $2, $3, $4)',
+        groupId, filename, 'richinfo', embed_name
+    )
+    
     print(f"✅ Created table {embed_name} and embedded {len(Original)} rows.")
 
     end_time = datetime.now()
