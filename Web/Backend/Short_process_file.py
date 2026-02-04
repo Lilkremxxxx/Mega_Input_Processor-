@@ -59,7 +59,7 @@ async def csv_process(file_path, groupId, filename):
     conn = await asyncpg.connect(
         host=PG_HOST, 
         port=int(PG_PORT),
-        database="Documents",
+        database="postgres",
         user=PG_USER, 
         password=PG_PASSWORD
     )

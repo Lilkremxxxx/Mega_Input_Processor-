@@ -56,7 +56,7 @@ async def delete_tb_shortinfo(data: DeleteTableRequest):
         conn = await asyncpg.connect(
             host=PG_HOST,
             port=int(PG_PORT),
-            database="Shortinfo_dtb",
+            database="postgres",
             user=PG_USER,
             password=PG_PASSWORD
         )

@@ -55,7 +55,7 @@ async def delete_tb_richinfo(data: DeleteTableRequest):
         # Kết nối đến database của groupId
         conn = await asyncpg.connect(
             host=PG_HOST,
-            database="Richinfo_dtb",
+            database="postgres",
             port=int(PG_PORT),
             user=PG_USER,
             password=PG_PASSWORD,

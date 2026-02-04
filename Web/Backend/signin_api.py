@@ -28,7 +28,7 @@ async def signin(data: SignInRequest):
             port=int(PG_PORT),
             user=PG_USER, 
             password=PG_PASSWORD, 
-            database="ai_db"
+            database="postgres"
         )
         user = await conn.fetchrow("SELECT * FROM users WHERE username=$1", username)
         if not user:

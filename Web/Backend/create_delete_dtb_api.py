@@ -28,7 +28,7 @@ async def create_database(data: CreateDbRequest):
             port=int(PG_PORT),
             user=PG_USER, 
             password=PG_PASSWORD, 
-            database="ai_db"
+            database="postgres"
         )
         
         user = await conn_check.fetchrow("SELECT * FROM users WHERE username=$1", username)
@@ -44,7 +44,7 @@ async def create_database(data: CreateDbRequest):
         conn = psycopg2.connect(
             host=PG_HOST, 
             port=int(PG_PORT),
-            dbname="ai_db",
+            dbname= "postgres",
             user=PG_USER, 
             password=PG_PASSWORD
         )
@@ -72,7 +72,7 @@ async def create_database(data: CreateDbRequest):
             port=int(PG_PORT),
             user=PG_USER, 
             password=PG_PASSWORD, 
-            database="ai_db"
+            database= "postgres"
         )
         await conn2.execute("UPDATE users SET database=$1 WHERE username=$2", dbname, username)
         await conn2.close()
@@ -93,7 +93,7 @@ async def delete_database(data: DeleteDbRequest):
         conn = psycopg2.connect(
             host=PG_HOST, 
             port=int(PG_PORT),
-            dbname="ai_db",
+            dbname="postgres",
             user=PG_USER, 
             password=PG_PASSWORD
         )
@@ -109,7 +109,7 @@ async def delete_database(data: DeleteDbRequest):
             port=int(PG_PORT),
             user=PG_USER, 
             password=PG_PASSWORD, 
-            database="ai_db"
+            database="postgres"
         )
         await conn2.execute("UPDATE users SET database='' WHERE username=$1", username)
         await conn2.close()
