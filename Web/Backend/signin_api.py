@@ -1,7 +1,8 @@
 import os
 import asyncpg
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, Depends
 from pydantic import BaseModel
+from Web.Backend.pgconpool import get_db
 from dotenv import load_dotenv
 
 router = APIRouter()
@@ -18,29 +19,23 @@ class SignInRequest(BaseModel):
     password: str
 
 @router.post("/signin")
-async def signin(data: SignInRequest):
+async def signin(data: SignInRequest,
+                 db: asyncpg.Connection = Depends(get_db)):
     try:
         username = data.username.strip()
         password = data.password
         print(f"Đang đăng nhập: {username}")
-        conn = await asyncpg.connect(
-            host=PG_HOST, 
-            port=int(PG_PORT),
-            user=PG_USER, 
-            password=PG_PASSWORD, 
-            database="postgres"
-        )
-        user = await conn.fetchrow("SELECT * FROM users WHERE username=$1", username)
+        user = await db.fetchrow("SELECT * FROM users WHERE username=$1", username)
         if not user:
-            await conn.close()
+            await db.close()
             print(f"Không tìm thấy user: {username}")
             return {"success": False, "detail": "User không tồn tại!"}
         if user['password'] != password:
-            await conn.close()
+            await db.close()
             print(f"Sai mật khẩu cho user: {username}")
             return {"success": False, "detail": "Sai mật khẩu!"}
         database = user.get('database') or ""
-        await conn.close()
+        await db.close()
         
         print(f"Đăng nhập thành công: {username}, database: {database}")
         return {"success": True, "username": username, "database": database}

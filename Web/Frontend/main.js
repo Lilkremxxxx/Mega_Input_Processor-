@@ -467,11 +467,17 @@ async function uploadFiles(files, endpoint) {
     resultSection.innerHTML = '';
     const formData = new FormData();
     files.forEach(file => formData.append('files', file));
-    // Thêm biến groupId vào formData
-    const groupId = localStorage.getItem('groupId');
-    if (groupId) {
-        formData.append('groupId', groupId);
+    
+    // Thêm username vào formData - MUST HAVE
+    const username = localStorage.getItem('currentUser');  // FIX: Đúng key là currentUser
+    console.log('Username from localStorage:', username);
+    if (!username) {
+        alert('Vui lòng đăng nhập trước khi upload!');
+        progressSection.style.display = 'none';
+        return;
     }
+    formData.append('username', username);
+    
     // Sử dụng XMLHttpRequest để lấy tiến trình upload
     const xhr = new XMLHttpRequest();
     xhr.open('POST', API_BASE_URL + endpoint, true);

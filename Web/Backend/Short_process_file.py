@@ -9,6 +9,7 @@ import openpyxl
 from PIL import Image
 from datetime import datetime
 import time
+from Web.Backend.pgconpool import get_db, _pool
 
 
 load_dotenv()
@@ -56,46 +57,41 @@ async def csv_process(file_path, groupId, filename):
     docs = []
     async for doc in loader.alazy_load():
         docs.append(doc)
-    conn = await asyncpg.connect(
-        host=PG_HOST, 
-        port=int(PG_PORT),
-        database="postgres",
-        user=PG_USER, 
-        password=PG_PASSWORD
-    )
-    #Nếu bảng tồn tại thì xóa
-    await conn.execute("CREATE EXTENSION IF NOT EXISTS vector;")
-    await conn.execute(f'DROP TABLE IF EXISTS "{name_tb}";')
+    async for conn in get_db():
+        try:
+            #Nếu bảng tồn tại thì xóa
+            await conn.execute("CREATE EXTENSION IF NOT EXISTS vector;")
+            await conn.execute(f'DROP TABLE IF EXISTS "{name_tb}";')
 
-    columns_def = ", ".join([f'"{col}" text' for col in columns])
-    await conn.execute(f'CREATE TABLE IF NOT EXISTS "{name_tb}" ({columns_def});')
-    Contents = [doc.page_content for doc in docs]
-    for item in Contents:
-        # Parse lại theo cấu trúc của CSVLoader
-        # Format: "row: 0\ncolumn1: value1\ncolumn2: value2"
-        lines = item.split('\n')
-        values = []
-        for line in lines[1:]:  # Bỏ qua dòng "row: X"
-            if ':' in line:
-                _, value = line.split(':', 1)
-                values.append(value.strip())
-        
-        placeholders = ','.join([f'${i+1}' for i in range(len(columns))])
-        columns_sql = ', '.join(f'"{col}"' for col in columns)
-        insert_sql = f'INSERT INTO "{name_tb}" ({columns_sql}) VALUES ({placeholders})'
-        await conn.execute(insert_sql, *values)
-    # Insert vào bảng Manager
-    await conn.execute(
-        'INSERT INTO "Manager" ("groupId", "fileName", "documentType", "tableName") VALUES ($1, $2, $3, $4)',
-        groupId, filename, 'shortinfo', name_tb
-    )
-    await conn.close()
-    print(f"✅ Created table {name_tb} and inserted {len(docs)} rows.")
-    end_time = datetime.now()
-    duration = end_time - start_time
-    print("Thời gian xử lý:", duration.total_seconds())
-
-
+            columns_def = ", ".join([f'"{col}" text' for col in columns])
+            await conn.execute(f'CREATE TABLE IF NOT EXISTS "{name_tb}" ({columns_def});')
+            Contents = [doc.page_content for doc in docs]
+            for item in Contents:
+                # Parse lại theo cấu trúc của CSVLoader
+                # Format: "row: 0\ncolumn1: value1\ncolumn2: value2"
+                lines = item.split('\n')
+                values = []
+                for line in lines[1:]:  # Bỏ qua dòng "row: X"
+                    if ':' in line:
+                        _, value = line.split(':', 1)
+                        values.append(value.strip())
+                
+                placeholders = ','.join([f'${i+1}' for i in range(len(columns))])
+                columns_sql = ', '.join(f'"{col}"' for col in columns)
+                insert_sql = f'INSERT INTO "{name_tb}" ({columns_sql}) VALUES ({placeholders})'
+                await conn.execute(insert_sql, *values)
+            # Insert vào bảng Manager
+            await conn.execute(
+                'INSERT INTO "Manager" ("groupId", "fileName", "documentType", "tableName") VALUES ($1, $2, $3, $4)',
+                groupId, filename, 'shortinfo', name_tb
+            )
+            await conn.close()
+            print(f"✅ Created table {name_tb} and inserted {len(docs)} rows.")
+            end_time = datetime.now()
+            duration = end_time - start_time
+            print("Thời gian xử lý:", duration.total_seconds())
+        finally:
+            pass
 
 
 async def xlsx_process(file_path, groupId, filename):
@@ -103,40 +99,37 @@ async def xlsx_process(file_path, groupId, filename):
     start_time = datetime.now()
     df = pd.read_excel(file_path, sheet_name=0)  # sheet_name=0 để lấy sheet đầu tiên
     table_name = f"{filename}_shortinfo"
-    conn = await asyncpg.connect(
-        host=PG_HOST, 
-        port=int(PG_PORT),
-        database="Documents", 
-        user=PG_USER, 
-        password=PG_PASSWORD
-    )
-    # Lấy columns từ DataFrame
-    columns = df.columns.tolist()
-    columns_def = ", ".join([f'"{col}" text' for col in columns])
-    await conn.execute("CREATE EXTENSION IF NOT EXISTS vector;")
-    await conn.execute(f'DROP TABLE IF EXISTS "{table_name}";')
-    await conn.execute(f'CREATE TABLE "{table_name}" ({columns_def});')
-    # Insert data
-    for _, row in df.iterrows():
-        values = [None if pd.isna(row[col]) else str(row[col]) for col in df.columns]
-        placeholders = ','.join([f'${i+1}' for i in range(len(columns))])
-        columns_sql = ', '.join(f'"{col}"' for col in columns)
-        insert_sql = f'INSERT INTO "{table_name}" ({columns_sql}) VALUES ({placeholders})'
-        await conn.execute(insert_sql, *values)
-    
-    # Insert vào bảng Manager
-    await conn.execute(
-        'INSERT INTO "Manager" ("groupId", "fileName", "documentType", "tableName") VALUES ($1, $2, $3, $4)',
-        groupId, filename, 'shortinfo', table_name
-    )
+    async for conn in get_db():
+        try:
+            # Lấy columns từ DataFrame
+            columns = df.columns.tolist()
+            columns_def = ", ".join([f'"{col}" text' for col in columns])
+            await conn.execute("CREATE EXTENSION IF NOT EXISTS vector;")
+            await conn.execute(f'DROP TABLE IF EXISTS "{table_name}";')
+            await conn.execute(f'CREATE TABLE "{table_name}" ({columns_def});')
+            # Insert data
+            for _, row in df.iterrows():
+                values = [None if pd.isna(row[col]) else str(row[col]) for col in df.columns]
+                placeholders = ','.join([f'${i+1}' for i in range(len(columns))])
+                columns_sql = ', '.join(f'"{col}"' for col in columns)
+                insert_sql = f'INSERT INTO "{table_name}" ({columns_sql}) VALUES ({placeholders})'
+                await conn.execute(insert_sql, *values)
+            
+            # Insert vào bảng Manager
+            await conn.execute(
+                'INSERT INTO "Manager" ("groupId", "fileName", "documentType", "tableName") VALUES ($1, $2, $3, $4)',
+                groupId, filename, 'shortinfo', table_name
+            )
 
-    print(f"✅ Created table {table_name} and inserted {len(df)} rows from first sheet.")
-    await conn.close()
-    end_time = datetime.now()
-    duration = end_time - start_time
-    print("Thời gian xử lý:", duration.total_seconds())
+            print(f"✅ Created table {table_name} and inserted {len(df)} rows from first sheet.")
+            await conn.close()
+            end_time = datetime.now()
+            duration = end_time - start_time
+            print("Thời gian xử lý:", duration.total_seconds())
+        finally:
+            pass
 
-    # Xử lý nhiều sheets nhưng ...
+    # Xử lý nhiều sheets
     '''
     # Xử lý từng sheet
     for sheet_name in sheet_names:

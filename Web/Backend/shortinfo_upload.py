@@ -1,9 +1,10 @@
 import os
 import asyncpg
-from fastapi import File, UploadFile, HTTPException, APIRouter, Form
+from fastapi import File, UploadFile, HTTPException, APIRouter, Form, Depends
 from typing import List
 from pydantic import BaseModel
 from dotenv import load_dotenv
+from Web.Backend.pgconpool import get_db
 
 load_dotenv()
 PG_HOST = os.getenv("PG_HOST")
@@ -45,25 +46,18 @@ async def upload_shortinfo(files: List[UploadFile] = File(...), groupId: str = F
     await short_process(file_info, groupId)
     return {"message": f"Successfully uploaded {len(saved_files)} shortinfo files and processed", "files": saved_files}
 
+
 @router.post("/delete_tb_shortinfo")
-async def delete_tb_shortinfo(data: DeleteTableRequest):
+async def delete_tb_shortinfo(data: DeleteTableRequest,
+                              db: asyncpg.Connection = Depends(get_db)):
     """Xóa table shortinfo của groupId"""
     try:
         groupId = data.groupId.strip()
         table_name = f"{groupId}_shortinfo"
         
-        # Kết nối đến database của groupId
-        conn = await asyncpg.connect(
-            host=PG_HOST,
-            port=int(PG_PORT),
-            database="postgres",
-            user=PG_USER,
-            password=PG_PASSWORD
-        )
-        
         # Xóa table nếu tồn tại
-        await conn.execute(f'DROP TABLE IF EXISTS "{table_name}";')
-        await conn.close()
+        await db.execute(f'DROP TABLE IF EXISTS "{table_name}";')
+        await db.close()
         print(f"Đã xóa table {table_name} thành công!")
         
         return {"success": True, "message": f"Đã xóa table {table_name} thành công!"}
