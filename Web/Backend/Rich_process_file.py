@@ -65,8 +65,15 @@ async def xlsx_process_rich(file_path, username, filename):
     #Lấy conn từ pool
     async for conn in get_db():
         try:
-            await conn.execute('CREATE EXTENSION IF NOT EXISTS vector;')
-            await conn.execute(f'CREATE TABLE IF NOT EXISTS "{embed_name}" (id SERIAL PRIMARY KEY, question TEXT, answer TEXT, note TEXT, vector_embedded VECTOR); ')
+            conn1 = await asyncpg.connect(
+                host=PG_HOST, 
+                port=int(PG_PORT),
+                database=username, 
+                user=PG_USER, 
+                password=PG_PASSWORD
+            )
+            await conn1.execute('CREATE EXTENSION IF NOT EXISTS vector;')
+            await conn1.execute(f'CREATE TABLE IF NOT EXISTS "{embed_name}" (id SERIAL PRIMARY KEY, question TEXT, answer TEXT, note TEXT, vector_embedded VECTOR); ')
             original_level = logging.getLogger().getEffectiveLevel()
             logging.getLogger().setLevel(logging.WARNING)
 
@@ -121,9 +128,19 @@ def clean_text(text):
     """Clean và normalize text trước khi xử lý"""
     if not text or not text.strip():
         return ""
-    text = ' '.join(text.split())
+    
     import re
+    import unicodedata
+    
+    # Normalize Unicode (NFC) để dấu tiếng Việt hiển thị đúng
+    text = unicodedata.normalize('NFC', text)
+    
+    # Loại bỏ khoảng trắng thừa
+    text = ' '.join(text.split())
+    
+    # Loại bỏ nhiều newline liên tiếp
     text = re.sub(r'\n+', '\n', text)
+    
     text = text.strip()
     return text
 
@@ -195,123 +212,130 @@ async def docx_text_pdf_process(file_path, username, filename):
     """Xử lý file document: tách thành chunks, embedding và lưu vào database"""
     start_time = datetime.now()
     embed_name = f"{filename}_richinfo"
-    async for conn in get_db():
-        try:
-            
-            await conn.execute('CREATE EXTENSION IF NOT EXISTS vector;')
-            await conn.execute(
-                f'CREATE TABLE IF NOT EXISTS "{embed_name}" '
-                f'(id SERIAL PRIMARY KEY, question TEXT, answer TEXT, note TEXT, vector_embedded VECTOR);'
-            )
-            
-            print(f"Đang đọc tài liệu: {filename}")
-            original_level = logging.getLogger().getEffectiveLevel()
-            
-            # Load document theo loại file
-            from langchain_core.documents import Document
+    
+    db_user_name = await asyncpg.connect(
+        host=PG_HOST,
+        port=int(PG_PORT),
+        database=username,
+        user=PG_USER,
+        password=PG_PASSWORD
+    )
+    await db_user_name.execute('CREATE EXTENSION IF NOT EXISTS vector;')
+    await db_user_name.execute(
+        f'CREATE TABLE IF NOT EXISTS "{embed_name}" '
+        f'(id SERIAL PRIMARY KEY, question TEXT, answer TEXT, note TEXT, vector_embedded VECTOR);'
+    )
+    
+    print(f"Đang đọc tài liệu: {filename}")
+    # Load document theo loại file
+    from langchain_core.documents import Document
 
-            ext = os.path.splitext(file_path)[1].lower()
-            if ext == '.pdf':
-                docs = await load_pdf_content(file_path)
-            elif ext == '.docx':
-                loader = Docx2txtLoader(file_path)
-                docs = loader.load()
-            elif ext == '.txt':
-                with open(file_path, 'r', encoding='utf-8') as f:
+    ext = os.path.splitext(file_path)[1].lower()
+    if ext == '.pdf':
+        docs = await load_pdf_content(file_path)
+    elif ext == '.docx':
+        loader = Docx2txtLoader(file_path)
+        docs = loader.load()
+    elif ext == '.txt':
+        # Try multiple encodings for Vietnamese text
+        content = None
+        for encoding in ['utf-8-sig', 'utf-8', 'cp1252', 'latin-1']:
+            try:
+                with open(file_path, 'r', encoding=encoding) as f:
                     content = f.read()
-                docs = [Document(page_content=content)]
-            else:
-                raise ValueError(f"Unsupported file type: {ext}")
+                print(f"✓ Đọc file txt với encoding: {encoding}")
+                break
+            except (UnicodeDecodeError, UnicodeError):
+                continue
+        
+        if content is None:
+            raise ValueError(f"Cannot decode {filename} with any common encoding")
+        
+        docs = [Document(page_content=content)]
+    else:
+        raise ValueError(f"Unsupported file type: {ext}")
+    
+    if not docs:
+        print("⚠️ Không thể đọc được nội dung từ file!")
+        await db_user_name.close()
+        return
+    
+    # Clean text trong tất cả documents
+    for doc in docs:
+        doc.page_content = clean_text(doc.page_content)
+    
+    # Loại bỏ documents rỗng sau khi clean
+    docs = [doc for doc in docs if doc.page_content]
+    
+    total_chars = sum(len(doc.page_content) for doc in docs)
+    print(f"Đã load {len(docs)} documents, {total_chars} ký tự")
+    
+    if total_chars == 0:
+        print("⚠️ Documents rỗng sau khi clean!")
+        await db_user_name.close()
+        return
+    
+    # Tách thành chunks
+    text_splitter = RecursiveCharacterTextSplitter(
+        chunk_size=500,
+        chunk_overlap=150,
+        separators=["\n\n", "\n", ". ", " ", ""],
+        length_function=len
+    )
+    chunks = text_splitter.split_documents(docs)
+    
+    # Fallback: nếu không tách được, dùng documents gốc
+    if not chunks:
+        print("Không tách được chunks, sử dụng documents gốc")
+        chunks = docs
+    
+    # Clean và filter chunks
+    chunk_texts = []
+    for chunk in chunks:
+        cleaned = clean_text(chunk.page_content)
+        if cleaned and len(cleaned) > 10:  # Chỉ lấy chunks có ít nhất 10 ký tự
+            chunk_texts.append(cleaned)
+    
+    print(f"Đã tách thành {len(chunk_texts)} chunks")
+    
+    if not chunk_texts:
+        print("⚠️ Không có chunks hợp lệ sau khi xử lý!")
+        await db_user_name.close()
+        return
+    
+    # Embedding từng chunk
+    print("Đang embedding...")
+    embedding_list = []
+    for i, text in enumerate(chunk_texts):
+        try:
+            vector = await asyncio.to_thread(embeddings.embed_query, text)
+            embedding_list.append(str(vector))
             
-            if not docs:
-                print("⚠️ Không thể đọc được nội dung từ file!")
-                await conn.close()
-                return
-            
-            # Clean text trong tất cả documents
-            for doc in docs:
-                doc.page_content = clean_text(doc.page_content)
-            
-            # Loại bỏ documents rỗng sau khi clean
-            docs = [doc for doc in docs if doc.page_content]
-            
-            total_chars = sum(len(doc.page_content) for doc in docs)
-            print(f"Đã load {len(docs)} documents, {total_chars} ký tự")
-            
-            if total_chars == 0:
-                print("⚠️ Documents rỗng sau khi clean!")
-                await conn.close()
-                return
-            
-            # Tách thành chunks
-            text_splitter = RecursiveCharacterTextSplitter(
-                chunk_size=500,
-                chunk_overlap=150,
-                separators=["\n\n", "\n", ". ", " ", ""],
-                length_function=len
-            )
-            chunks = text_splitter.split_documents(docs)
-            
-            # Fallback: nếu không tách được, dùng documents gốc
-            if not chunks:
-                print("Không tách được chunks, sử dụng documents gốc")
-                chunks = docs
-            
-            # Clean và filter chunks
-            chunk_texts = []
-            for chunk in chunks:
-                cleaned = clean_text(chunk.page_content)
-                if cleaned and len(cleaned) > 10:  # Chỉ lấy chunks có ít nhất 10 ký tự
-                    chunk_texts.append(cleaned)
-            
-            print(f"Đã tách thành {len(chunk_texts)} chunks")
-            
-            if not chunk_texts:
-                print("⚠️ Không có chunks hợp lệ sau khi xử lý!")
-                await conn.close()
-                return
-            
-            # Embedding từng chunk
-            print("Đang embedding...")
-            embedding_list = []
-            for i, text in enumerate(chunk_texts):
-                try:
-                    vector = await asyncio.to_thread(embeddings.embed_query, text)
-                    embedding_list.append(str(vector))
-                    
-                    if (i + 1) % 10 == 0:
-                        print(f"  {i + 1}/{len(chunk_texts)} chunks")
-                except Exception as e:
-                    print(f"❌ Error embedding chunk {i}: {e}")
-                    raise
-            
-            # Lưu vào database
-            print("Đang lưu vào database...")
-            db_user_name = await asyncpg.connect(
-                host=PG_HOST,
-                port=int(PG_PORT),
-                database=username,
-                user=PG_USER,
-                password=PG_PASSWORD
-            )
-            for i, (text, vector) in enumerate(zip(chunk_texts, embedding_list)):
-                await db_user_name.execute(
-                    f'INSERT INTO "{embed_name}" (question, answer, note, vector_embedded) '
-                    f'VALUES ($1, $2, $3, $4)',
-                    text, text, "", vector
-                )
-            
-            await conn.execute(
-                'INSERT INTO "Manager" ("username", "fileName", "documentType", "tableName") '
-                'VALUES ($1, $2, $3, $4)',
-                username, filename, 'richinfo', embed_name
-            )
-            await conn.close()
-            
-            duration = (datetime.now() - start_time).total_seconds()
-            print(f"✅ Hoàn thành: {len(chunk_texts)} chunks trong {duration:.2f}s")
-            
-            logging.getLogger().setLevel(original_level)
-            
-        finally:
-            await conn.close()
+            if (i + 1) % 10 == 0:
+                print(f"  {i + 1}/{len(chunk_texts)} chunks")
+        except Exception as e:
+            print(f"❌ Error embedding chunk {i}: {e}")
+            raise
+    
+    # Lưu vào database
+    print("Đang lưu vào database...")
+    for i, (text, vector) in enumerate(zip(chunk_texts, embedding_list)):
+        await db_user_name.execute(
+            f'INSERT INTO "{embed_name}" (question, answer, note, vector_embedded) '
+            f'VALUES ($1, $2, $3, $4)',
+            text, text, "", vector
+        )
+    
+    # Close the direct connection to user database
+    await db_user_name.close()
+    
+    # Use connection pool for Manager table update
+    async with _pool.acquire() as conn:
+        await conn.execute(
+            'INSERT INTO "Manager" ("username", "fileName", "documentType", "tableName") '
+            'VALUES ($1, $2, $3, $4)',
+            username, filename, 'richinfo', embed_name
+        )
+    
+    duration = (datetime.now() - start_time).total_seconds()
+    print(f"✅ Hoàn thành: {len(chunk_texts)} chunks trong {duration:.2f}s")
